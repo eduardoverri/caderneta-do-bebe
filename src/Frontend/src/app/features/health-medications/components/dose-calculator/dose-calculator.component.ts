@@ -11,60 +11,65 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
   imports: [FormsModule, OfficialReferenceComponent],
   template: `
     <div class="card" style="border-top: 4px solid var(--cat-health);">
-      <h3 class="section-title">
-        <span aria-hidden="true">💊</span>
-        <span>Administração Segura de Medicamentos Prescritos e Prevenção de Intoxicações (pág. 61 e 64)</span>
-      </h3>
-      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
-        Peso Atual Cadastrado: <strong>{{ weightKg() }} kg</strong> ({{ babyStore.activeBaby().currentWeightGrams }}g) •
-        <strong>ATENÇÃO (pág. 61):</strong> Nunca dê à criança remédio que não tenha sido receitado pelo médico. Verifique sempre a validade do que você oferece a sua filha. Mantenha medicamentos fora do alcance da criança (pág. 63).
-      </p>
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
+        <h3 class="section-title" style="margin-bottom: 0;">
+          <span aria-hidden="true">💊</span>
+          <span>Administração Segura de Medicamentos</span>
+        </h3>
+        <span class="badge badge-health">Peso base: {{ weightKg() }} kg</span>
+      </div>
 
-      <div class="grid-2" style="margin-bottom: 1rem;">
+      <div class="grid-2" style="margin-bottom: 0.85rem;">
         <div>
-          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Medicamento Receitado pelo Médico</label>
+          <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Medicamento Prescrito</label>
           <select class="input-field" [ngModel]="medicationName()" (ngModelChange)="medicationName.set($event)">
-            <option value="Paracetamol Gotas (200mg/mL)">Paracetamol Gotas (200mg/mL) — Int. mín: 6h</option>
-            <option value="Dipirona Gotas (500mg/mL)">Dipirona Sódica (500mg/mL) — Int. mín: 6h</option>
-            <option value="Ibuprofeno Infantil (100mg/mL)">Ibuprofeno (100mg/mL) — Int. mín: 8h</option>
+            <option value="Paracetamol Gotas (200mg/mL)">Paracetamol Gotas (200mg/mL) — Int. 6h</option>
+            <option value="Dipirona Gotas (500mg/mL)">Dipirona Sódica (500mg/mL) — Int. 6h</option>
+            <option value="Ibuprofeno Infantil (100mg/mL)">Ibuprofeno (100mg/mL) — Int. 8h</option>
           </select>
         </div>
 
         <div>
-          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Temperatura Aferida (°C) — Febre ≥ 37,5 °C / Hipotermia ≤ 35,5 °C (pág. 23)</label>
+          <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Temperatura (°C)</label>
           <input type="number" step="0.1" class="input-field" [(ngModel)]="temperature" />
         </div>
 
         <div>
-          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">
-            Dose Prescrita (mg) — Limite máx seguro por peso: {{ maxSafeMg() }} mg
+          <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">
+            Dose (mg) — Teto seguro: {{ maxSafeMg() }} mg
           </label>
           <input type="number" class="input-field" [ngModel]="doseMg()" (ngModelChange)="doseMg.set(+$event)" />
         </div>
 
         <div>
-          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Indicação Médica / Sintoma Observado</label>
+          <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Indicação / Sintoma</label>
           <input type="text" class="input-field" [(ngModel)]="reason" />
         </div>
       </div>
 
-      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
         <button type="button" class="btn btn-health" style="flex: 1;" (click)="submitDose()">
           <span aria-hidden="true">🛡️</span>
-          <span>Validar Segurança e Registrar Dose Prescrita</span>
+          <span>Validar e Registrar Dose</span>
         </button>
 
-        <button type="button" class="btn" (click)="simulateOverdoseTest()" title="Simula tentativa de superdosagem para testar bloqueio de segurança">
+        <button type="button" class="btn" (click)="simulateOverdoseTest()" title="Simula tentativa de superdosagem">
           <span aria-hidden="true">🧪</span>
-          <span>Simular Teste de Superdosagem</span>
+          <span>Testar Bloqueio</span>
         </button>
       </div>
 
-      <div class="card-elevated" style="margin-top: 1rem; font-size: 0.83rem; color: var(--text-secondary);">
-        <strong>🚨 Sinais de Perigo e Intoxicação (Caderneta da Criança, pág. 23, 58 e 64):</strong>
-        Febre (temperatura igual ou maior do que 37,5 ºC) ou temperatura do corpo baixa (menor ou igual a 35,5 ºC em menores de 2 meses; hipotermia &lt; 36,5 ºC nas consultas pág. 70–73) são sinais de alerta. Quando os dentes de leite estão nascendo (por volta dos 6 meses), a criança pode apresentar alteração do sono, perda de apetite, pequeno aumento de temperatura, aumento da salivação, coceira nas gengivas e irritabilidade (pág. 58). Em casos de acidentes com medicamentos e outras substâncias tóxicas, procure urgentemente um serviço de saúde, chame o <strong>SAMU (192)</strong> ou ligue para o <strong>Centro de Informação Toxicológica (0800-722-6001)</strong>.
-      </div>
-      <app-official-reference page="Caderneta da Criança, p. 23: sinais de perigo; p. 58: nascimento dos dentes; p. 61, 63 e 64: prevenção de intoxicação e envenenamento" />
+      <details class="info-disclosure">
+        <summary>💡 Alertas de Febre, Hipotermia e Intoxicação (pág. 23, 58, 61 e 64)</summary>
+        <div class="info-disclosure-body">
+          <ul>
+            <li>Nunca administre medicamentos sem prescrição médica e mantenha-os fora do alcance da criança (pág. 61 e 63).</li>
+            <li><strong>Febre (≥ 37,5 °C) ou Hipotermia (≤ 35,5 °C)</strong> exigem avaliação; em menores de 3 meses a febre é sinal de alerta imediato.</li>
+            <li>Emergências toxicológicas: <strong>SAMU (192)</strong> ou <strong>CEATOX (0800-722-6001)</strong>.</li>
+          </ul>
+          <app-official-reference page="p. 23, 58, 61, 63 e 64" />
+        </div>
+      </details>
     </div>
   `
 })

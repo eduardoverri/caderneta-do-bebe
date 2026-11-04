@@ -1,7 +1,7 @@
 {
-  "name": "Rotina do Bebê",
-  "short_name": "Rotina do Bebê",
-  "description": "Aplicativo PWA de gestão da rotina do bebê: sono, nutrição, fraldas, saúde e marcos motores.",
+  "name": "Caderneta do Bebê — Passaporte da Cidadania",
+  "short_name": "Caderneta do Bebê",
+  "description": "Aplicativo PWA oficial da Caderneta da Criança (5ª ed. MS) integrado às ações automatizadas da rotina do bebê.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FAF7F2",

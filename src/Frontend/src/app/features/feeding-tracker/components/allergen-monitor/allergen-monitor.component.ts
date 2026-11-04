@@ -12,24 +12,21 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
     <div class="card" style="border-top: 4px solid var(--cat-milestone);">
       <h3 class="section-title">
         <span aria-hidden="true">🥜</span>
-        <span>Acompanhamento de Novos Alimentos, Aceitação e Sinais de Perigo (pág. 23, 32 e 33)</span>
+        <span>Monitoramento de Novos Alimentos (72h)</span>
       </h3>
-      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
-        Aos 6 meses a criança já pode receber outros alimentos além do leite materno (Quadro 2 — Grupos de alimentos: feijões, cereais, raízes e tubérculos, legumes e verduras, frutas, carnes e ovos, leites e queijos, amendoim, castanhas e nozes). Quando sua filha recusar determinado alimento, ofereça-o novamente em outras refeições (algumas vezes, são necessárias de oito a dez tentativas para que a criança aceite o novo alimento). Anote as dificuldades com a alimentação para conversar na consulta ou nas sessões de grupos do serviço de saúde.
-      </p>
 
       <!-- Iniciar acompanhamento de novo alimento -->
-      <div class="card-elevated" style="margin-bottom: 1rem;">
-        <div style="font-weight: 700; font-size: 0.88rem; margin-bottom: 0.5rem;">➕ Registrar Introdução e Observação de Alimento (Quadro 2 — pág. 32)</div>
+      <div class="card-elevated" style="margin-bottom: 0.85rem;">
+        <div style="font-weight: 700; font-size: 0.84rem; margin-bottom: 0.45rem;">➕ Iniciar Observação de Novo Alimento</div>
         <div class="grid-3">
           <select class="input-field" [(ngModel)]="newAllergenName">
-            <option value="Ovos de galinha (Grupo das carnes e ovos)">Ovos de galinha (Grupo das carnes e ovos)</option>
-            <option value="Pescados / Peixe (Grupo das carnes e ovos)">Pescados / Peixe (Grupo das carnes e ovos)</option>
-            <option value="Amendoim, castanhas e nozes (Grupo pág. 32)">Amendoim, castanhas e nozes (Grupo pág. 32)</option>
-            <option value="Trigo / Aveia (Grupo dos cereais)">Trigo / Aveia (Grupo dos cereais)</option>
-            <option value="Coalhadas, iogurtes naturais sem açúcar e queijos">Coalhadas, iogurtes naturais sem açúcar e queijos</option>
+            <option value="Ovos de galinha (Grupo das carnes e ovos)">Ovos de galinha</option>
+            <option value="Pescados / Peixe (Grupo das carnes e ovos)">Pescados / Peixe</option>
+            <option value="Amendoim, castanhas e nozes (Grupo pág. 32)">Amendoim, castanhas e nozes</option>
+            <option value="Trigo / Aveia (Grupo dos cereais)">Trigo / Aveia</option>
+            <option value="Coalhadas, iogurtes naturais sem açúcar e queijos">Iogurte natural / Queijos</option>
           </select>
-          <input type="text" class="input-field" [(ngModel)]="initialDose" placeholder="Quantidade oferecida (ex: 2 a 3 colheres de sopa)" />
+          <input type="text" class="input-field" [(ngModel)]="initialDose" placeholder="Quantidade (ex: 2 colheres)" />
           <button type="button" class="btn btn-milestone" (click)="startTrial()">
             <span aria-hidden="true">⏱️</span>
             <span>Iniciar Observação</span>
@@ -39,44 +36,48 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
 
       <!-- Lista de Alimentos Acompanhados -->
       @for (item of store.allergenTrials(); track item.trial.id) {
-        <div class="card-elevated" style="margin-bottom: 0.75rem;">
+        <div class="card-elevated" style="margin-bottom: 0.65rem;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
             <div>
-              <div style="font-weight: 800; font-size: 1rem;">{{ item.trial.foodName }}</div>
-              <div style="font-size: 0.8rem; color: var(--text-secondary);">{{ item.evaluation.clinicalGuidance }}</div>
+              <div style="font-weight: 800; font-size: 0.95rem;">{{ item.trial.foodName }}</div>
+              <div style="font-size: 0.78rem; color: var(--text-secondary);">{{ item.evaluation.clinicalGuidance }}</div>
             </div>
             <span class="badge" [class]="item.evaluation.hasAlertSymptoms ? 'badge-health' : item.trial.status === 'SafeCompleted' ? 'badge-diaper' : 'badge-milestone'">
               @if (item.evaluation.hasAlertSymptoms) {
-                <span aria-hidden="true">🚨</span> Sinal de Alerta / Perigo Registrado
+                <span aria-hidden="true">🚨</span> Alerta Registrado
               } @else if (item.trial.status === 'SafeCompleted') {
-                <span aria-hidden="true">✅</span> Alimento Aceito sem Intercorrências
+                <span aria-hidden="true">✅</span> Seguro / Concluído
               } @else {
-                <span aria-hidden="true">⏳</span> {{ item.evaluation.remainingHours }}h em observação
+                <span aria-hidden="true">⏳</span> {{ item.evaluation.remainingHours }}h restantes
               }
             </span>
           </div>
 
-          <!-- Checklist de Sinais de Perigo / Alerta da Caderneta (pág. 23 e 71–76) -->
           @if (item.trial.status === 'MonitoringActive') {
-            <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-subtle); font-size: 0.84rem;">
-              <div style="font-weight: 700; margin-bottom: 0.4rem;">Registrar Sinais de Perigo ou Alerta (Caderneta da Criança, pág. 23 e 74 — Ligue 192 SAMU em urgência):</div>
-              <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                <button type="button" class="btn" style="min-height: 34px; font-size: 0.8rem;" (click)="reportSymptom(item.trial.id, 'hives')">
-                  🔴 Criança com manchas avermelhadas ou arroxeadas na pele (pág. 23)
-                </button>
-                <button type="button" class="btn" style="min-height: 34px; font-size: 0.8rem;" (click)="reportSymptom(item.trial.id, 'swelling')">
-                  🚨 Dificuldade para respirar, respiração rápida ou sibilâncias (pág. 23 e 74)
-                </button>
-                <button type="button" class="btn" style="min-height: 34px; font-size: 0.8rem;" (click)="reportSymptom(item.trial.id, 'vomiting')">
-                  ⚠️ Criança que vomita tudo o que come e bebe / Diarreia (pág. 23 e 74)
-                </button>
-              </div>
+            <div style="margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--border-subtle); display: flex; flex-wrap: wrap; gap: 0.4rem;">
+              <button type="button" class="btn" style="min-height: 30px; font-size: 0.75rem;" (click)="reportSymptom(item.trial.id, 'hives')">
+                🔴 Manchas na pele
+              </button>
+              <button type="button" class="btn" style="min-height: 30px; font-size: 0.75rem;" (click)="reportSymptom(item.trial.id, 'swelling')">
+                🚨 Dificuldade respiratória / inchaço
+              </button>
+              <button type="button" class="btn" style="min-height: 30px; font-size: 0.75rem;" (click)="reportSymptom(item.trial.id, 'vomiting')">
+                ⚠️ Vômitos / Diarreia
+              </button>
             </div>
           }
         </div>
       }
 
-      <app-official-reference page="Caderneta da Criança, p. 23: sinais de perigo; p. 32: Quadro 2 – Grupos de alimentos; p. 33: aceitação e dificuldades com a alimentação" />
+      <details class="info-disclosure">
+        <summary>💡 Orientações sobre Novos Alimentos e Sinais de Perigo (pág. 23, 32 e 33)</summary>
+        <div class="info-disclosure-body">
+          <p>
+            Quando a criança recusar determinado alimento, ofereça-o novamente em outras refeições (são necessárias de 8 a 10 tentativas em média para aceitação). Em caso de manchas avermelhadas, vômitos persistentes ou dificuldade para respirar, procure urgência (SAMU 192).
+          </p>
+          <app-official-reference page="p. 23, 32 e 33" />
+        </div>
+      </details>
     </div>
   `
 })

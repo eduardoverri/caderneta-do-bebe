@@ -14,6 +14,7 @@ import { QuickActionBarComponent } from './shared/components/quick-action-bar/qu
 import { GoogleLoginComponent } from './features/auth/google-login.component';
 import { ChildrenManagerComponent } from './features/children/children-manager.component';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
+import { CadernetaHubComponent } from './features/caderneta/caderneta-hub.component';
 import { SleepTrackerComponent } from './features/sleep-tracker/sleep-tracker.component';
 import { FeedingTrackerComponent } from './features/feeding-tracker/feeding-tracker.component';
 import { DiapersTrackerComponent } from './features/diapers-tracker/diapers-tracker.component';
@@ -35,6 +36,7 @@ import { PediatricReportComponent } from './features/reports/pediatric-report.co
     GoogleLoginComponent,
     ChildrenManagerComponent,
     DashboardComponent,
+    CadernetaHubComponent,
     SleepTrackerComponent,
     FeedingTrackerComponent,
     DiapersTrackerComponent,
@@ -52,9 +54,9 @@ import { PediatricReportComponent } from './features/reports/pediatric-report.co
       <header class="pwa-header no-print">
         <div class="pwa-topbar">
           <div class="pwa-brand">
-            <img src="app-icon.png" alt="Rotina do Bebê" class="pwa-brand-logo" />
+            <img src="app-icon.png" alt="Caderneta do Bebê" class="pwa-brand-logo" />
             <div style="min-width: 0;">
-              <div class="pwa-brand-title">Rotina do Bebê</div>
+              <div class="pwa-brand-title">Caderneta do Bebê</div>
               @if (authService.isAuthenticated() && babyStore.hasBabies()) {
                 <div style="font-size: 0.72rem; color: var(--text-secondary); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                   {{ babyStore.activeBaby().name }} • {{ babyStore.activeBaby() | babyAge }}
@@ -241,6 +243,9 @@ import { PediatricReportComponent } from './features/reports/pediatric-report.co
               @case ('dashboard') {
                 <app-dashboard />
               }
+              @case ('caderneta') {
+                <app-caderneta-hub />
+              }
               @case ('children') {
                 <app-children-manager (childSelected)="activeTab.set('dashboard')" />
               }
@@ -290,7 +295,8 @@ export class AppComponent implements OnInit {
   readonly alertsOpen = signal<boolean>(false);
 
   readonly tabs = [
-    { id: 'dashboard', label: 'Início', icon: '📊' },
+    { id: 'dashboard', label: 'Rotina & Ações', icon: '📊' },
+    { id: 'caderneta', label: 'Caderneta (Passaporte)', icon: '📘' },
     { id: 'sleep', label: 'Sono', icon: '💤' },
     { id: 'feeding', label: 'Alimentação', icon: '🤱' },
     { id: 'diapers', label: 'Fraldas', icon: '🧷' },
@@ -298,7 +304,7 @@ export class AppComponent implements OnInit {
     { id: 'milestones', label: 'Desenvolvimento', icon: '🏆' },
     { id: 'growth', label: 'Crescimento (OMS)', icon: '📈' },
     { id: 'report', label: 'Consultas', icon: '🩺' },
-    { id: 'children', label: 'Identificação', icon: '👶' }
+    { id: 'children', label: 'Crianças', icon: '👶' }
   ];
 
   async ngOnInit(): Promise<void> {

@@ -16,65 +16,62 @@ import { OfficialReferenceComponent } from '../../shared/components/official-ref
     <div class="grid-2">
       <!-- Lista de Filhos vinculados à Conta Google atual -->
       <section class="card" style="border-top: 4px solid var(--cat-sleep);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
           <div>
-            <h3 class="section-title" style="margin-bottom: 0.15rem;">
+            <h3 class="section-title" style="margin-bottom: 0.1rem;">
               <span aria-hidden="true">👶</span>
-              <span>Identificação da Criança — Caderneta da Criança (Passaporte da Cidadania)</span>
+              <span>Crianças Vinculadas</span>
             </h3>
-            <p style="font-size: 0.84rem; color: var(--text-secondary);">
-              Usuário: <strong>{{ authService.currentUser()?.email }}</strong> • A Caderneta da Criança: Passaporte da Cidadania é um documento importante e único no qual devem ficar registradas todas as informações sobre o atendimento à criança nos serviços de saúde, de educação e de assistência social para o acompanhamento desde o momento do seu nascimento até os 9 anos de idade.
+            <p style="font-size: 0.78rem; color: var(--text-secondary);">
+              Conta Google: <strong>{{ authService.currentUser()?.email }}</strong>
             </p>
           </div>
-          <span class="badge badge-sleep">{{ babyStore.babies().length }} filho(s)</span>
+          <span class="badge badge-sleep">{{ babyStore.babies().length }} cadastro(s)</span>
         </div>
 
         @if (babyStore.babies().length === 0) {
-          <div class="card-elevated" style="text-align: center; padding: 1.5rem;">
-            <p style="font-weight: 700;">Nenhum filho cadastrado nesta Conta Google ainda.</p>
-            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.3rem;">
-              Utilize o formulário ao lado para adicionar o primeiro filho(a) à sua conta.
-            </p>
+          <div class="card-elevated" style="text-align: center; padding: 1.25rem;">
+            <p style="font-weight: 700;">Nenhuma criança cadastrada nesta conta ainda.</p>
           </div>
         }
 
-        <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+        <div style="display: flex; flex-direction: column; gap: 0.65rem;">
           @for (b of babyStore.babies(); track b.id) {
             <div
               class="card-elevated"
               [style.border-width]="babyStore.selectedBabyId() === b.id ? '2px' : '1px'"
               [style.border-color]="babyStore.selectedBabyId() === b.id ? 'var(--cat-sleep)' : 'var(--border-subtle)'">
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; flex-wrap: wrap;">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
                 <div>
-                  <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <span style="font-size: 1.1rem; font-weight: 800;">{{ b.name }}</span>
+                  <div style="display: flex; align-items: center; gap: 0.45rem;">
+                    <span style="font-size: 1rem; font-weight: 800;">{{ b.name }}</span>
                     @if (babyStore.selectedBabyId() === b.id) {
-                      <span class="badge badge-diaper">✓ Selecionado</span>
+                      <span class="badge badge-diaper">✓ Ativa</span>
                     }
                   </div>
-                  <div style="font-size: 0.84rem; color: var(--text-secondary); margin-top: 0.2rem;">
-                    Idade: <strong>{{ b | babyAge }}</strong> • Nasc.: {{ b.birthDate | date:'dd/MM/yyyy' }} ({{ b.gestationalWeeks }}s {{ b.gestationalDays }}d)
+                  <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.15rem;">
+                    <strong>{{ b | babyAge }}</strong> • Nasc.: {{ b.birthDate | date:'dd/MM/yyyy' }} ({{ b.gestationalWeeks }}s {{ b.gestationalDays }}d)
                   </div>
-                  <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.15rem;">
-                    Peso atual: {{ b.currentWeightGrams }}g • Estatura: {{ b.currentHeightCm }}cm • Perímetro Cefálico: {{ b.headCircumferenceCm }}cm • Sangue: {{ b.bloodType }}
+                  <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.1rem;">
+                    {{ b.currentWeightGrams }}g • {{ b.currentHeightCm }}cm • PC {{ b.headCircumferenceCm }}cm • {{ b.bloodType }}
                   </div>
                 </div>
 
-                <div style="display: flex; gap: 0.45rem;">
+                <div style="display: flex; gap: 0.35rem;">
                   <button
                     type="button"
                     class="btn btn-sleep"
-                    style="min-height: 36px; font-size: 0.8rem;"
+                    style="min-height: 34px; font-size: 0.78rem;"
                     (click)="selectChild(b.id)">
-                    <span>Abrir Rotina</span>
+                    <span>Selecionar</span>
                   </button>
 
                   <button
                     type="button"
                     class="btn"
-                    style="min-height: 36px; font-size: 0.8rem;"
+                    style="min-height: 34px; font-size: 0.78rem;"
                     (click)="removeChild(b.id)"
-                    title="Remover cadastro deste filho">
+                    title="Remover cadastro">
                     <span aria-hidden="true">🗑️</span>
                   </button>
                 </div>
@@ -82,57 +79,53 @@ import { OfficialReferenceComponent } from '../../shared/components/official-ref
             </div>
           }
         </div>
-        <app-official-reference page="Caderneta da Criança, p. 2: apresentação; p. 4: identificação da criança; p. 19 e 89: cuidados com o bebê pré-termo e idade corrigida; p. 69: parto e nascimento" />
       </section>
 
       <!-- Formulário para Adicionar Novo Filho(a) à Conta Google -->
       <section class="card" style="border-top: 4px solid var(--cat-diaper);">
         <h3 class="section-title">
           <span aria-hidden="true">➕</span>
-          <span>Identificação da Criança e Dados do Nascimento</span>
+          <span>Cadastrar Nova Criança</span>
         </h3>
-        <p style="font-size: 0.84rem; color: var(--text-secondary); margin-bottom: 1rem;">
-          Chamamos de pré-termo os bebês que nascem com menos de 37 semanas de idade gestacional. Para saber como estimular seu bebê (pág. 37 à 52) e para avaliar o seu desenvolvimento (pág. 78 à 86), você precisa, primeiro, corrigir a sua idade: basta diminuir da idade atual o tempo que faltou para ele completar 9 meses (ou 40 semanas de idade gestacional).
-        </p>
 
         <div class="grid-2" style="margin-bottom: 0.85rem;">
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Nome da Criança</label>
-            <input type="text" class="input-field" [(ngModel)]="name" placeholder="Nome da criança" />
+            <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Nome da Criança</label>
+            <input type="text" class="input-field" [(ngModel)]="name" placeholder="Nome completo" />
           </div>
 
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Data de Nascimento</label>
+            <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Data de Nascimento</label>
             <input type="date" class="input-field" [(ngModel)]="birthDateInput" />
           </div>
 
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">IG — Semanas</label>
+            <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">IG — Semanas</label>
             <input type="number" class="input-field" [(ngModel)]="gestationalWeeks" min="24" max="42" />
           </div>
 
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">IG — Dias</label>
+            <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">IG — Dias</label>
             <input type="number" class="input-field" [(ngModel)]="gestationalDays" min="0" max="6" />
           </div>
 
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Peso (g)</label>
+            <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Peso (g)</label>
             <input type="number" class="input-field" [(ngModel)]="currentWeightGrams" min="500" max="20000" />
           </div>
 
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Comprimento / Estatura (cm)</label>
+            <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Comprimento / Estatura (cm)</label>
             <input type="number" step="0.5" class="input-field" [(ngModel)]="currentHeightCm" min="30" max="110" />
           </div>
 
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Perímetro Cefálico — PC (cm)</label>
+            <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Perímetro Cefálico — PC (cm)</label>
             <input type="number" step="0.1" class="input-field" [(ngModel)]="headCircumferenceCm" min="20" max="60" />
           </div>
 
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Sexo (Gráficos de Crescimento OMS/MS)</label>
+            <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Sexo</label>
             <select class="input-field" [(ngModel)]="gender">
               <option value="F">Menina (Feminino)</option>
               <option value="M">Menino (Masculino)</option>
@@ -140,7 +133,7 @@ import { OfficialReferenceComponent } from '../../shared/components/official-ref
           </div>
 
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Tipo Sanguíneo</label>
+            <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Tipo Sanguíneo</label>
             <select class="input-field" [(ngModel)]="bloodType">
               <option value="O+">O+</option>
               <option value="A+">A+</option>
@@ -158,8 +151,18 @@ import { OfficialReferenceComponent } from '../../shared/components/official-ref
           style="width: 100%;"
           (click)="createChild()">
           <span aria-hidden="true">👶</span>
-          <span>Cadastrar Criança e Iniciar Acompanhamento</span>
+          <span>Cadastrar Criança</span>
         </button>
+
+        <details class="info-disclosure">
+          <summary>💡 Sobre a Caderneta e Idade Corrigida para Prematuros (pág. 2, 19 e 89)</summary>
+          <div class="info-disclosure-body">
+            <p>
+              Para bebês nascidos com menos de 37 semanas (pré-termo), corrige-se a idade diminuindo da idade cronológica o tempo que faltou para completar 40 semanas de gestação.
+            </p>
+            <app-official-reference page="p. 2, 4, 19 e 89" />
+          </div>
+        </details>
       </section>
     </div>
   `

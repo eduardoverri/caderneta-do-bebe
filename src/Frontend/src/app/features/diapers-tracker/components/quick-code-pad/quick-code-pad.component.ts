@@ -5,8 +5,8 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
   standalone: true,
   template: `
     <div class="card-elevated" style="margin-bottom: 1rem;">
-      <div style="font-weight: 700; font-size: 0.88rem; margin-bottom: 0.5rem;">
-        1. ESTADO DA FRALDA (TROCA DE FRALDAS MOLHADAS OU SUJAS — PÁG. 18)
+      <div style="font-weight: 700; font-size: 0.84rem; margin-bottom: 0.5rem;">
+        1. ESTADO DA FRALDA
       </div>
       <div class="grid-4" style="margin-bottom: 1rem;">
         @for (st of states; track st.code) {
@@ -21,8 +21,8 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
         }
       </div>
 
-      <div style="font-weight: 700; font-size: 0.88rem; margin-bottom: 0.5rem;">
-        2. VOLUME DE URINA / EVACUAÇÃO (OBSERVAR SINAL DE URINAR POUCO — PÁG. 21)
+      <div style="font-weight: 700; font-size: 0.84rem; margin-bottom: 0.5rem;">
+        2. VOLUME DE URINA / EVACUAÇÃO
       </div>
       <div class="grid-3">
         @for (vol of volumes; track vol.level) {
@@ -31,7 +31,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
             class="btn"
             [class.btn-diaper]="selectedVolume === vol.level"
             (click)="selectVolume.emit(vol.level)">
-            <span>({{ vol.level }} - {{ vol.label }})</span>
+            <span>{{ vol.level }} - {{ vol.label }}</span>
           </button>
         }
       </div>
@@ -52,8 +52,8 @@ export class QuickCodePadComponent {
   ];
 
   readonly volumes = [
-    { level: 1, label: 'Pouco (Atenção: Urinar pouco)' },
+    { level: 1, label: 'Pouco ⚠️' },
     { level: 2, label: 'Médio (Habitual)' },
-    { level: 3, label: 'Cheia (Fralda muito molhada/suja)' }
+    { level: 3, label: 'Cheia' }
   ];
 }

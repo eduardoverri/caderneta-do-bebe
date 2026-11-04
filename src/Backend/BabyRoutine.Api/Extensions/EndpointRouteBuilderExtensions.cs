@@ -161,6 +161,7 @@ public static class EndpointRouteBuilderExtensions
 
                     incoming.OwnerUserId = user.Id;
                     incoming.FamilyId = user.FamilyId;
+                    SeedData.EnsureCadernetaDataPopulated(incoming);
 
                     var existing = await babyRepo.GetByIdAndUserAsync(incoming.Id, user.Id, ct);
                     if (existing is not null)
@@ -201,9 +202,11 @@ public static class EndpointRouteBuilderExtensions
                             [
                                 new GrowthLog
                                 {
+                                    Id = "growth-birth",
                                     MeasuredAt = incoming.BirthDate,
                                     WeightGrams = incoming.BirthWeightGrams > 0 ? incoming.BirthWeightGrams : incoming.CurrentWeightGrams,
                                     HeightCm = incoming.BirthLengthCm > 0 ? incoming.BirthLengthCm : incoming.CurrentHeightCm,
+                                    AdjustedHeightCm = incoming.BirthLengthCm > 0 ? incoming.BirthLengthCm : incoming.CurrentHeightCm,
                                     HeadCircumferenceCm = incoming.HeadCircumferenceCm > 0 ? incoming.HeadCircumferenceCm : 35.0,
                                     ZScoreWeightForAge = 0.0
                                 }
@@ -285,6 +288,9 @@ public static class EndpointRouteBuilderExtensions
             }
 
             var now = DateTime.UtcNow;
+            var birthLength = dto.BirthLengthCm > 0 ? dto.BirthLengthCm : 49.0;
+            var birthHead = dto.HeadCircumferenceCm > 0 ? dto.HeadCircumferenceCm : 34.5;
+            var birthBmi = CadernetaClinicalEngine.CalculateBmi(dto.BirthWeightGrams, birthLength);
 
             var newBaby = new Baby
             {
@@ -295,12 +301,12 @@ public static class EndpointRouteBuilderExtensions
                 BirthDate = dto.BirthDate,
                 GestationalWeeks = dto.GestationalWeeks,
                 GestationalDays = dto.GestationalDays,
-                Gender = dto.Gender,
+                Gender = string.IsNullOrWhiteSpace(dto.Gender) ? "F" : dto.Gender,
                 BirthWeightGrams = dto.BirthWeightGrams,
-                BirthLengthCm = dto.BirthLengthCm,
+                BirthLengthCm = birthLength,
                 CurrentWeightGrams = dto.CurrentWeightGrams > 0 ? dto.CurrentWeightGrams : dto.BirthWeightGrams,
-                CurrentHeightCm = dto.CurrentHeightCm > 0 ? dto.CurrentHeightCm : dto.BirthLengthCm,
-                HeadCircumferenceCm = dto.HeadCircumferenceCm > 0 ? dto.HeadCircumferenceCm : 35.0,
+                CurrentHeightCm = dto.CurrentHeightCm > 0 ? dto.CurrentHeightCm : birthLength,
+                HeadCircumferenceCm = birthHead,
                 BloodType = string.IsNullOrWhiteSpace(dto.BloodType) ? "O+" : dto.BloodType,
                 Pediatrician = new PediatricianInfo
                 {
@@ -313,19 +319,26 @@ public static class EndpointRouteBuilderExtensions
                 [
                     new GrowthLog
                     {
+                        Id = "growth-birth",
                         MeasuredAt = dto.BirthDate,
+                        AgeDays = 0,
                         WeightGrams = dto.BirthWeightGrams,
-                        HeightCm = dto.BirthLengthCm,
-                        HeadCircumferenceCm = dto.HeadCircumferenceCm > 0 ? dto.HeadCircumferenceCm : 35.0,
-                        ZScoreWeightForAge = 0.0
+                        HeightCm = birthLength,
+                        MeasuredPosition = "Deitada (Comprimento)",
+                        AdjustedHeightCm = birthLength,
+                        HeadCircumferenceCm = birthHead,
+                        Bmi = birthBmi,
+                        ZScoreWeightForAge = 0.0,
+                        Notes = "Medidas ao nascer (Maternidade)"
                     }
                 ],
                 Vaccines = SeedData.CreateDefaultVaccines(),
                 CreatedAt = now
             };
 
+            SeedData.EnsureCadernetaDataPopulated(newBaby);
+
             await babyRepo.InsertAsync(newBaby, ct);
-            // Inicializa a árvore de marcos motores exclusiva para este filho
             await milestoneRepo.GetByBabyIdAsync(user.Id, newBaby.Id, ct);
 
             return Results.Created($"/api/babies/{newBaby.Id}", newBaby);
@@ -348,6 +361,300 @@ public static class EndpointRouteBuilderExtensions
         })
         .WithName("GetBabyById");
 
+        // =========================================================================
+        // 1.1 Atualização Completa ou Modular da Caderneta da Criança (5ª Edição MS)
+        // =========================================================================
+        babyGroup.MapPut("", async (
+            string babyId,
+            UpdateBabyFullRequest req,
+            HttpContext httpContext,
+            IBabyRepository babyRepo,
+            CancellationToken ct) =>
+        {
+            var userId = httpContext.GetCurrentUserId();
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, userId, ct);
+            if (baby is null) return Results.NotFound(new { message = "Filho não encontrado nesta conta de usuário." });
+
+            if (!string.IsNullOrWhiteSpace(req.Name)) baby.Name = req.Name.Trim();
+            if (req.BirthDate.HasValue) baby.BirthDate = req.BirthDate.Value;
+            if (!string.IsNullOrWhiteSpace(req.Gender)) baby.Gender = req.Gender;
+            if (req.GestationalWeeks is > 0) baby.GestationalWeeks = req.GestationalWeeks.Value;
+            if (req.GestationalDays is >= 0) baby.GestationalDays = req.GestationalDays.Value;
+            if (req.BirthWeightGrams is > 0) baby.BirthWeightGrams = req.BirthWeightGrams.Value;
+            if (req.BirthLengthCm is > 0) baby.BirthLengthCm = req.BirthLengthCm.Value;
+            if (req.CurrentWeightGrams is > 0) baby.CurrentWeightGrams = req.CurrentWeightGrams.Value;
+            if (req.CurrentHeightCm is > 0) baby.CurrentHeightCm = req.CurrentHeightCm.Value;
+            if (req.HeadCircumferenceCm is > 0) baby.HeadCircumferenceCm = req.HeadCircumferenceCm.Value;
+            if (!string.IsNullOrWhiteSpace(req.BloodType)) baby.BloodType = req.BloodType;
+            if (req.Pediatrician != null) baby.Pediatrician = req.Pediatrician;
+            if (req.RnptObservations != null) baby.RnptObservations = req.RnptObservations;
+
+            if (req.Identification != null) baby.Identification = req.Identification;
+            if (req.AddressHistory != null) baby.AddressHistory = req.AddressHistory;
+            if (req.SocialAssistance != null) baby.SocialAssistance = req.SocialAssistance;
+            if (req.EducationRecords != null) baby.EducationRecords = req.EducationRecords;
+            if (req.PrenatalAndBirth != null) baby.PrenatalAndBirth = req.PrenatalAndBirth;
+            if (req.NeonatalScreenings != null) baby.NeonatalScreenings = req.NeonatalScreenings;
+            if (req.ScheduledConsultations != null) baby.ScheduledConsultations = req.ScheduledConsultations;
+            if (req.DevelopmentSurveillance != null) baby.DevelopmentSurveillance = req.DevelopmentSurveillance;
+            if (req.Dental != null) baby.Dental = req.Dental;
+            if (req.Supplementation != null) baby.Supplementation = req.Supplementation;
+            if (req.CampaignVaccines != null) baby.CampaignVaccines = req.CampaignVaccines;
+            if (req.GeneralNotes != null) baby.GeneralNotes = req.GeneralNotes;
+            if (req.AppointmentsAgenda != null) baby.AppointmentsAgenda = req.AppointmentsAgenda;
+
+            await babyRepo.UpdateAsync(baby, ct);
+            return Results.Ok(baby);
+        })
+        .WithName("UpdateBabyAndCaderneta");
+
+        babyGroup.MapPut("/identification", async (
+            string babyId,
+            UpdateIdentificationAndSocialRequest req,
+            HttpContext httpContext,
+            IBabyRepository babyRepo,
+            CancellationToken ct) =>
+        {
+            var userId = httpContext.GetCurrentUserId();
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, userId, ct);
+            if (baby is null) return Results.NotFound();
+
+            if (!string.IsNullOrWhiteSpace(req.Name)) baby.Name = req.Name.Trim();
+            if (req.BirthDate.HasValue) baby.BirthDate = req.BirthDate.Value;
+            if (!string.IsNullOrWhiteSpace(req.BloodType)) baby.BloodType = req.BloodType;
+            if (req.Pediatrician != null) baby.Pediatrician = req.Pediatrician;
+            if (req.Identification != null) baby.Identification = req.Identification;
+            if (req.AddressHistory != null) baby.AddressHistory = req.AddressHistory;
+            if (req.SocialAssistance != null) baby.SocialAssistance = req.SocialAssistance;
+            if (req.EducationRecords != null) baby.EducationRecords = req.EducationRecords;
+
+            await babyRepo.UpdateAsync(baby, ct);
+            return Results.Ok(baby);
+        })
+        .WithName("UpdateChildIdentificationAndSocial");
+
+        babyGroup.MapPut("/prenatal-birth", async (
+            string babyId,
+            UpdatePrenatalAndScreeningsRequest req,
+            HttpContext httpContext,
+            IBabyRepository babyRepo,
+            CancellationToken ct) =>
+        {
+            var userId = httpContext.GetCurrentUserId();
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, userId, ct);
+            if (baby is null) return Results.NotFound();
+
+            if (req.GestationalWeeks is > 0) baby.GestationalWeeks = req.GestationalWeeks.Value;
+            if (req.GestationalDays is >= 0) baby.GestationalDays = req.GestationalDays.Value;
+            if (req.BirthWeightGrams is > 0) baby.BirthWeightGrams = req.BirthWeightGrams.Value;
+            if (req.BirthLengthCm is > 0) baby.BirthLengthCm = req.BirthLengthCm.Value;
+            if (req.PrenatalAndBirth != null) baby.PrenatalAndBirth = req.PrenatalAndBirth;
+            if (req.NeonatalScreenings != null) baby.NeonatalScreenings = req.NeonatalScreenings;
+
+            await babyRepo.UpdateAsync(baby, ct);
+            return Results.Ok(baby);
+        })
+        .WithName("UpdatePrenatalBirthAndScreenings");
+
+        babyGroup.MapPut("/consultations/{code}", async (
+            string babyId,
+            string code,
+            RoutineConsultationRecord updatedConsultation,
+            HttpContext httpContext,
+            IBabyRepository babyRepo,
+            CancellationToken ct) =>
+        {
+            var userId = httpContext.GetCurrentUserId();
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, userId, ct);
+            if (baby is null) return Results.NotFound();
+
+            updatedConsultation.Code = code;
+            var idx = baby.ScheduledConsultations.FindIndex(c => c.Code.Equals(code, StringComparison.OrdinalIgnoreCase));
+            if (idx >= 0) baby.ScheduledConsultations[idx] = updatedConsultation;
+            else baby.ScheduledConsultations.Add(updatedConsultation);
+
+            await babyRepo.UpdateAsync(baby, ct);
+            return Results.Ok(baby);
+        })
+        .WithName("UpdateRecommendedConsultation");
+
+        babyGroup.MapPut("/development-surveillance", async (
+            string babyId,
+            DevelopmentSurveillanceRecord req,
+            HttpContext httpContext,
+            IBabyRepository babyRepo,
+            IMilestoneRepository milestoneRepo,
+            CancellationToken ct) =>
+        {
+            var userId = httpContext.GetCurrentUserId();
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, userId, ct);
+            if (baby is null) return Results.NotFound();
+
+            baby.DevelopmentSurveillance = req;
+            var milestones = await milestoneRepo.GetByBabyIdAsync(userId, baby.Id, ct);
+            var integralEval = CadernetaClinicalEngine.EvaluateIntegralDevelopment(baby, milestones);
+            if (string.IsNullOrWhiteSpace(req.OverallClassification))
+            {
+                baby.DevelopmentSurveillance.OverallClassification = integralEval.Classification;
+            }
+
+            await babyRepo.UpdateAsync(baby, ct);
+            var mchatEval = CadernetaClinicalEngine.EvaluateMChatR(baby.DevelopmentSurveillance.MChatRQuestions);
+
+            return Results.Ok(new
+            {
+                baby,
+                integralEvaluation = integralEval,
+                mchatEvaluation = mchatEval
+            });
+        })
+        .WithName("UpdateDevelopmentSurveillanceAndMChatR");
+
+        babyGroup.MapGet("/development-evaluation", async (
+            string babyId,
+            HttpContext httpContext,
+            IBabyRepository babyRepo,
+            IMilestoneRepository milestoneRepo,
+            CancellationToken ct) =>
+        {
+            var userId = httpContext.GetCurrentUserId();
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, userId, ct);
+            if (baby is null) return Results.NotFound();
+
+            var milestones = await milestoneRepo.GetByBabyIdAsync(userId, baby.Id, ct);
+            var integralEval = CadernetaClinicalEngine.EvaluateIntegralDevelopment(baby, milestones);
+            var mchatEval = CadernetaClinicalEngine.EvaluateMChatR(baby.DevelopmentSurveillance.MChatRQuestions);
+
+            return Results.Ok(new
+            {
+                integralEvaluation = integralEval,
+                mchatEvaluation = mchatEval
+            });
+        })
+        .WithName("GetIntegralDevelopmentAndMChatREvaluation");
+
+        babyGroup.MapPut("/dental", async (
+            string babyId,
+            DentalRecord dental,
+            HttpContext httpContext,
+            IBabyRepository babyRepo,
+            CancellationToken ct) =>
+        {
+            var userId = httpContext.GetCurrentUserId();
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, userId, ct);
+            if (baby is null) return Results.NotFound();
+
+            baby.Dental = dental;
+            await babyRepo.UpdateAsync(baby, ct);
+            return Results.Ok(baby);
+        })
+        .WithName("UpdateDentalOdontogramAndConsultations");
+
+        babyGroup.MapPut("/supplementation", async (
+            string babyId,
+            SupplementationRecord supplementation,
+            HttpContext httpContext,
+            IBabyRepository babyRepo,
+            CancellationToken ct) =>
+        {
+            var userId = httpContext.GetCurrentUserId();
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, userId, ct);
+            if (baby is null) return Results.NotFound();
+
+            baby.Supplementation = supplementation;
+            await babyRepo.UpdateAsync(baby, ct);
+            return Results.Ok(baby);
+        })
+        .WithName("UpdateVitaminAAndIronSupplementation");
+
+        babyGroup.MapPut("/vaccines/{vaccineCode}", async (
+            string babyId,
+            string vaccineCode,
+            UpdateVaccineStatusRequest req,
+            HttpContext httpContext,
+            IBabyRepository babyRepo,
+            CancellationToken ct) =>
+        {
+            var userId = httpContext.GetCurrentUserId();
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, userId, ct);
+            if (baby is null) return Results.NotFound();
+
+            var vax = baby.Vaccines.FirstOrDefault(v => v.Code.Equals(vaccineCode, StringComparison.OrdinalIgnoreCase));
+            if (vax is null) return Results.NotFound(new { message = "Vacina não encontrada no calendário." });
+
+            vax.Status = req.Status;
+            vax.AppliedAt = req.Status == "Applied" ? (req.AppliedAt ?? DateTime.UtcNow) : req.AppliedAt;
+            if (req.Lot != null) vax.Lot = req.Lot;
+            if (req.Laboratory != null) vax.Laboratory = req.Laboratory;
+            if (req.HealthUnit != null) vax.HealthUnit = req.HealthUnit;
+            if (req.Signature != null) vax.Signature = req.Signature;
+
+            await babyRepo.UpdateAsync(baby, ct);
+            return Results.Ok(baby);
+        })
+        .WithName("UpdateNationalCalendarVaccine");
+
+        babyGroup.MapPost("/campaign-vaccines", async (
+            string babyId,
+            CampaignVaccineRecord campaignVax,
+            HttpContext httpContext,
+            IBabyRepository babyRepo,
+            CancellationToken ct) =>
+        {
+            var userId = httpContext.GetCurrentUserId();
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, userId, ct);
+            if (baby is null) return Results.NotFound();
+
+            if (string.IsNullOrWhiteSpace(campaignVax.Id))
+            {
+                campaignVax.Id = Guid.NewGuid().ToString("N")[..12];
+            }
+
+            var idx = baby.CampaignVaccines.FindIndex(c => c.Id == campaignVax.Id);
+            if (idx >= 0) baby.CampaignVaccines[idx] = campaignVax;
+            else baby.CampaignVaccines.Add(campaignVax);
+
+            await babyRepo.UpdateAsync(baby, ct);
+            return Results.Ok(baby);
+        })
+        .WithName("UpsertCampaignVaccine");
+
+        babyGroup.MapDelete("/campaign-vaccines/{campaignId}", async (
+            string babyId,
+            string campaignId,
+            HttpContext httpContext,
+            IBabyRepository babyRepo,
+            CancellationToken ct) =>
+        {
+            var userId = httpContext.GetCurrentUserId();
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, userId, ct);
+            if (baby is null) return Results.NotFound();
+
+            baby.CampaignVaccines.RemoveAll(c => c.Id == campaignId);
+            await babyRepo.UpdateAsync(baby, ct);
+            return Results.Ok(baby);
+        })
+        .WithName("DeleteCampaignVaccine");
+
+        babyGroup.MapPut("/notes-agenda", async (
+            string babyId,
+            UpdateNotesAndAgendaRequest req,
+            HttpContext httpContext,
+            IBabyRepository babyRepo,
+            CancellationToken ct) =>
+        {
+            var userId = httpContext.GetCurrentUserId();
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, userId, ct);
+            if (baby is null) return Results.NotFound();
+
+            if (req.GeneralNotes != null) baby.GeneralNotes = req.GeneralNotes;
+            if (req.AppointmentsAgenda != null) baby.AppointmentsAgenda = req.AppointmentsAgenda;
+
+            await babyRepo.UpdateAsync(baby, ct);
+            return Results.Ok(baby);
+        })
+        .WithName("UpdateGeneralNotesAndAgenda");
+
         babyGroup.MapDelete("", async (
             string babyId,
             HttpContext httpContext,
@@ -364,7 +671,7 @@ public static class EndpointRouteBuilderExtensions
         .WithName("DeleteChildForUser");
 
         // =========================================================================
-        // 2. Registro Genérico ou Rápido de Eventos (Separado por Usuário e por Filho)
+        // 2. Registro, Alteração e Exclusão de Eventos da Rotina
         // =========================================================================
         babyGroup.MapPost("/events", async (
             string babyId,
@@ -426,6 +733,67 @@ public static class EndpointRouteBuilderExtensions
         })
         .AddEndpointFilter<ValidationFilter<CreateRoutineEventDto>>()
         .WithName("CreateRoutineEvent");
+
+        babyGroup.MapPut("/events/{eventId}", async (
+            string babyId,
+            string eventId,
+            UpdateRoutineEventRequest req,
+            HttpContext httpContext,
+            IBabyRepository babyRepo,
+            IRoutineEventRepository eventRepo,
+            IHubContext<FamilyHub> hub,
+            CancellationToken ct) =>
+        {
+            var userId = httpContext.GetCurrentUserId();
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, userId, ct);
+            if (baby is null) return Results.NotFound();
+
+            var existing = await eventRepo.GetByIdAsync(userId, baby.Id, eventId, ct);
+            if (existing is null) return Results.NotFound(new { message = "Evento de rotina não encontrado." });
+
+            if (!string.IsNullOrWhiteSpace(req.Category)) existing.Category = req.Category;
+            if (req.Timestamp.HasValue) existing.Timestamp = req.Timestamp.Value;
+            if (req.EndTimestamp.HasValue) existing.EndTimestamp = req.EndTimestamp.Value;
+            if (req.DurationMinutes.HasValue) existing.DurationMinutes = req.DurationMinutes;
+            if (!string.IsNullOrWhiteSpace(req.RecordedByName)) existing.RecordedByName = req.RecordedByName;
+            if (req.Notes != null) existing.Notes = req.Notes;
+            if (req.Details != null) existing.Details = req.Details;
+
+            if (existing.Category == RoutineCategory.Diaper)
+            {
+                var flags = PediatricStoolClassifier.Evaluate(
+                    existing.Details.StoolColor,
+                    existing.Details.StoolConsistency,
+                    existing.Details.HasBlood,
+                    baby.GetChronologicalAgeDays(existing.Timestamp)
+                );
+                existing.ClinicalFlags = new ClinicalFlags
+                {
+                    IsRedFlagAlert = flags.IsClinicalAlert,
+                    AlertMessage = flags.AlertMessage,
+                    UrgencyLevel = flags.UrgencyLevel
+                };
+            }
+
+            await eventRepo.UpsertAsync(existing, ct);
+            await hub.Clients.Group($"family_{baby.FamilyId}").SendAsync("EventUpdated", existing, ct);
+
+            return Results.Ok(existing);
+        })
+        .WithName("UpdateRoutineEvent");
+
+        babyGroup.MapDelete("/events/{eventId}", async (
+            string babyId,
+            string eventId,
+            HttpContext httpContext,
+            IRoutineEventRepository eventRepo,
+            CancellationToken ct) =>
+        {
+            var userId = httpContext.GetCurrentUserId();
+            var deleted = await eventRepo.DeleteAsync(userId, babyId, eventId, ct);
+            return deleted ? Results.NoContent() : Results.NotFound();
+        })
+        .WithName("DeleteRoutineEvent");
 
         // =========================================================================
         // 3. Timeline Diária e Resumo Sintético (Separado por Usuário e por Filho)
@@ -986,7 +1354,7 @@ public static class EndpointRouteBuilderExtensions
         .WithName("AdministerMedication");
 
         // =========================================================================
-        // 8. Marcos do Desenvolvimento Motor (Separado por Usuário e por Filho)
+        // 8. Marcos do Desenvolvimento Motor + 52 Marcos Oficiais da Caderneta
         // =========================================================================
         babyGroup.MapGet("/milestones", async (
             string babyId,
@@ -1030,12 +1398,23 @@ public static class EndpointRouteBuilderExtensions
             if (milestone is null) return Results.NotFound();
 
             milestone.Status = dto.Status;
-            if (dto.Status == "Achieved")
+            if (!string.IsNullOrWhiteSpace(dto.OfficialCode))
+            {
+                milestone.OfficialCode = dto.OfficialCode;
+                if (dto.OfficialCode == "P") milestone.Status = "Achieved";
+                else if (dto.OfficialCode == "A") milestone.Status = "NotStarted";
+            }
+            else
+            {
+                milestone.OfficialCode = dto.Status == "Achieved" ? "P" : (dto.Status == "InProgress" ? "NV" : "A");
+            }
+
+            if (milestone.Status == "Achieved")
             {
                 milestone.AchievedAtDate ??= DateTime.UtcNow;
                 milestone.ActualAgeAtAchievementDays ??= baby.GetChronologicalAgeDays();
             }
-            else if (dto.Status == "NotStarted")
+            else if (milestone.Status == "NotStarted")
             {
                 milestone.AchievedAtDate = null;
                 milestone.ActualAgeAtAchievementDays = null;
@@ -1050,7 +1429,7 @@ public static class EndpointRouteBuilderExtensions
         .WithName("ToggleMilestoneAchievement");
 
         // =========================================================================
-        // 8.5. Evolução Antropométrica e Curvas OMS (Separado por Usuário e por Filho)
+        // 8.5. Evolução Antropométrica, Pressão Arterial (PA) e Curvas OMS (p. 77 e 88-100)
         // =========================================================================
         babyGroup.MapGet("/growth", async (
             string babyId,
@@ -1083,16 +1462,43 @@ public static class EndpointRouteBuilderExtensions
             }
 
             var measuredAt = dto.MeasuredAt ?? DateTime.UtcNow;
+            var ageDays = Math.Max(0, (int)(measuredAt - baby.BirthDate).TotalDays);
             var effectiveDays = baby.GetCorrectedAgeDays(measuredAt);
+            var adjustedHeight = CadernetaClinicalEngine.CalculateAdjustedHeightCm(dto.HeightCm, ageDays, dto.MeasuredPosition);
+            var bmi = CadernetaClinicalEngine.CalculateBmi(dto.WeightGrams, adjustedHeight);
+            var (zW, zH, zHead, zBmi) = CadernetaClinicalEngine.EstimateZScoresForGirl(
+                effectiveDays,
+                dto.WeightGrams,
+                adjustedHeight,
+                dto.HeadCircumferenceCm,
+                bmi);
+
             var zScore = dto.ZScoreWeightForAge ?? CalculateWhoWeightForAgeZScore(baby.Gender, effectiveDays, dto.WeightGrams);
 
             var entry = new GrowthLog
             {
+                Id = Guid.NewGuid().ToString("N")[..12],
                 MeasuredAt = measuredAt,
+                AgeDays = ageDays,
+                CorrectedGestationalWeeks = dto.CorrectedGestationalWeeks ?? (baby.GestationalWeeks < 37 ? Math.Min(64, baby.GestationalWeeks + (ageDays / 7)) : null),
                 WeightGrams = dto.WeightGrams,
                 HeightCm = dto.HeightCm,
+                MeasuredPosition = dto.MeasuredPosition ?? (ageDays < 730 ? "Deitada (Comprimento)" : "Em pé (Estatura)"),
+                AdjustedHeightCm = adjustedHeight,
                 HeadCircumferenceCm = dto.HeadCircumferenceCm,
-                ZScoreWeightForAge = Math.Round(zScore, 2)
+                Bmi = bmi,
+                BloodPressureSystolic = dto.BloodPressureSystolic,
+                BloodPressureDiastolic = dto.BloodPressureDiastolic,
+                BloodPressureObservations = dto.BloodPressureObservations ?? string.Empty,
+                ZScoreWeightForAge = Math.Round(zScore, 2),
+                ZScoreHeightForAge = zH,
+                ZScoreHeadCircumference = zHead,
+                ZScoreBmiForAge = zBmi,
+                ClassificationWeight = CadernetaClinicalEngine.ClassifyWeightForAge(zScore),
+                ClassificationHeight = CadernetaClinicalEngine.ClassifyHeightForAge(zH),
+                ClassificationHeadCircumference = CadernetaClinicalEngine.ClassifyHeadCircumference(zHead),
+                ClassificationBmi = CadernetaClinicalEngine.ClassifyBmiForAge(zBmi, ageDays),
+                Notes = dto.Notes ?? string.Empty
             };
 
             baby.GrowthLogs.Add(entry);
@@ -1107,6 +1513,90 @@ public static class EndpointRouteBuilderExtensions
             return Results.Created($"/api/babies/{babyId}/growth", baby);
         })
         .WithName("RecordBabyGrowthLog");
+
+        babyGroup.MapPut("/growth/{growthId}", async (
+            string babyId,
+            string growthId,
+            RecordGrowthLogDto dto,
+            HttpContext httpContext,
+            IBabyRepository babyRepo,
+            CancellationToken ct) =>
+        {
+            var userId = httpContext.GetCurrentUserId();
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, userId, ct);
+            if (baby is null) return Results.NotFound();
+
+            var idx = baby.GrowthLogs.FindIndex(g => g.Id == growthId);
+            if (idx < 0) return Results.NotFound(new { message = "Registro antropométrico não encontrado." });
+
+            var measuredAt = dto.MeasuredAt ?? baby.GrowthLogs[idx].MeasuredAt;
+            var ageDays = Math.Max(0, (int)(measuredAt - baby.BirthDate).TotalDays);
+            var effectiveDays = baby.GetCorrectedAgeDays(measuredAt);
+            var adjustedHeight = CadernetaClinicalEngine.CalculateAdjustedHeightCm(dto.HeightCm, ageDays, dto.MeasuredPosition);
+            var bmi = CadernetaClinicalEngine.CalculateBmi(dto.WeightGrams, adjustedHeight);
+            var (zW, zH, zHead, zBmi) = CadernetaClinicalEngine.EstimateZScoresForGirl(
+                effectiveDays,
+                dto.WeightGrams,
+                adjustedHeight,
+                dto.HeadCircumferenceCm,
+                bmi);
+            var zScore = dto.ZScoreWeightForAge ?? CalculateWhoWeightForAgeZScore(baby.Gender, effectiveDays, dto.WeightGrams);
+
+            baby.GrowthLogs[idx] = new GrowthLog
+            {
+                Id = growthId,
+                MeasuredAt = measuredAt,
+                AgeDays = ageDays,
+                CorrectedGestationalWeeks = dto.CorrectedGestationalWeeks,
+                WeightGrams = dto.WeightGrams,
+                HeightCm = dto.HeightCm,
+                MeasuredPosition = dto.MeasuredPosition ?? (ageDays < 730 ? "Deitada (Comprimento)" : "Em pé (Estatura)"),
+                AdjustedHeightCm = adjustedHeight,
+                HeadCircumferenceCm = dto.HeadCircumferenceCm,
+                Bmi = bmi,
+                BloodPressureSystolic = dto.BloodPressureSystolic,
+                BloodPressureDiastolic = dto.BloodPressureDiastolic,
+                BloodPressureObservations = dto.BloodPressureObservations ?? string.Empty,
+                ZScoreWeightForAge = Math.Round(zScore, 2),
+                ZScoreHeightForAge = zH,
+                ZScoreHeadCircumference = zHead,
+                ZScoreBmiForAge = zBmi,
+                ClassificationWeight = CadernetaClinicalEngine.ClassifyWeightForAge(zScore),
+                ClassificationHeight = CadernetaClinicalEngine.ClassifyHeightForAge(zH),
+                ClassificationHeadCircumference = CadernetaClinicalEngine.ClassifyHeadCircumference(zHead),
+                ClassificationBmi = CadernetaClinicalEngine.ClassifyBmiForAge(zBmi, ageDays),
+                Notes = dto.Notes ?? string.Empty
+            };
+
+            var latest = baby.GrowthLogs.OrderBy(g => g.MeasuredAt).LastOrDefault();
+            if (latest != null)
+            {
+                baby.CurrentWeightGrams = latest.WeightGrams;
+                baby.CurrentHeightCm = latest.HeightCm;
+                baby.HeadCircumferenceCm = latest.HeadCircumferenceCm;
+            }
+
+            await babyRepo.UpdateAsync(baby, ct);
+            return Results.Ok(baby);
+        })
+        .WithName("UpdateBabyGrowthLog");
+
+        babyGroup.MapDelete("/growth/{growthId}", async (
+            string babyId,
+            string growthId,
+            HttpContext httpContext,
+            IBabyRepository babyRepo,
+            CancellationToken ct) =>
+        {
+            var userId = httpContext.GetCurrentUserId();
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, userId, ct);
+            if (baby is null) return Results.NotFound();
+
+            baby.GrowthLogs.RemoveAll(g => g.Id == growthId);
+            await babyRepo.UpdateAsync(baby, ct);
+            return Results.Ok(baby);
+        })
+        .WithName("DeleteBabyGrowthLog");
 
         // =========================================================================
         // 9. Relatório Pediátrico Consolidado (Separado por Usuário e por Filho)
@@ -1138,11 +1628,9 @@ public static class EndpointRouteBuilderExtensions
 
     private static double CalculateWhoWeightForAgeZScore(string gender, int ageDays, double weightGrams)
     {
-        // Mediana (M) e Desvio-Padrão aproximado (SD) de Peso para Idade OMS (0 a 24 meses) em gramas
         double months = Math.Clamp(ageDays / 30.4375, 0.0, 24.0);
         bool isFemale = string.Equals(gender, "F", StringComparison.OrdinalIgnoreCase);
 
-        // Pontos de referência OMS (0, 3, 6, 9, 12, 18, 24 meses)
         double[] refMonths = [0, 3, 6, 9, 12, 18, 24];
         double[] medianBoys = [3346, 6376, 7934, 8901, 9647, 10938, 12151];
         double[] sdBoys = [450, 720, 860, 960, 1040, 1180, 1320];
@@ -1165,3 +1653,70 @@ public static class EndpointRouteBuilderExtensions
         return Math.Clamp((weightGrams - median) / sd, -4.0, 4.0);
     }
 }
+
+public record UpdateVaccineStatusRequest(
+    string Status,
+    DateTime? AppliedAt = null,
+    string? Lot = null,
+    string? Laboratory = null,
+    string? HealthUnit = null,
+    string? Signature = null);
+
+public record UpdateBabyFullRequest(
+    string? Name = null,
+    DateTime? BirthDate = null,
+    string? Gender = null,
+    int? GestationalWeeks = null,
+    int? GestationalDays = null,
+    double? BirthWeightGrams = null,
+    double? BirthLengthCm = null,
+    double? CurrentWeightGrams = null,
+    double? CurrentHeightCm = null,
+    double? HeadCircumferenceCm = null,
+    string? BloodType = null,
+    PediatricianInfo? Pediatrician = null,
+    string? RnptObservations = null,
+    ChildIdentification? Identification = null,
+    List<AddressChangeRecord>? AddressHistory = null,
+    SocialAssistanceRecord? SocialAssistance = null,
+    List<SchoolLifeRecord>? EducationRecords = null,
+    PrenatalBirthRecord? PrenatalAndBirth = null,
+    NeonatalScreeningRecord? NeonatalScreenings = null,
+    List<RoutineConsultationRecord>? ScheduledConsultations = null,
+    DevelopmentSurveillanceRecord? DevelopmentSurveillance = null,
+    DentalRecord? Dental = null,
+    SupplementationRecord? Supplementation = null,
+    List<CampaignVaccineRecord>? CampaignVaccines = null,
+    List<CadernetaNoteRecord>? GeneralNotes = null,
+    List<AgendaEntryRecord>? AppointmentsAgenda = null);
+
+public record UpdateIdentificationAndSocialRequest(
+    string? Name = null,
+    DateTime? BirthDate = null,
+    string? BloodType = null,
+    PediatricianInfo? Pediatrician = null,
+    ChildIdentification? Identification = null,
+    List<AddressChangeRecord>? AddressHistory = null,
+    SocialAssistanceRecord? SocialAssistance = null,
+    List<SchoolLifeRecord>? EducationRecords = null);
+
+public record UpdatePrenatalAndScreeningsRequest(
+    int? GestationalWeeks = null,
+    int? GestationalDays = null,
+    double? BirthWeightGrams = null,
+    double? BirthLengthCm = null,
+    PrenatalBirthRecord? PrenatalAndBirth = null,
+    NeonatalScreeningRecord? NeonatalScreenings = null);
+
+public record UpdateNotesAndAgendaRequest(
+    List<CadernetaNoteRecord>? GeneralNotes = null,
+    List<AgendaEntryRecord>? AppointmentsAgenda = null);
+
+public record UpdateRoutineEventRequest(
+    string? Category = null,
+    DateTime? Timestamp = null,
+    DateTime? EndTimestamp = null,
+    int? DurationMinutes = null,
+    string? RecordedByName = null,
+    string? Notes = null,
+    RoutineEventDetails? Details = null);

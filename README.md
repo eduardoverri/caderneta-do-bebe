@@ -1,56 +1,68 @@
-# Sistema de Gestão da Rotina do Bebê (0 a 24 Meses)
+# 📘 Caderneta do Bebê — Passaporte da Cidadania (5ª Edição - MS) & Gestão Inteligente de Rotina Pediátrica
 
-Implementação completa baseada nos documentos:
-- [DOCUMENTO_DE_DESIGN_SISTEMA_ROTINA_DO_BEBE.md](file:///C:/Users/eduar/Documents/git/rotina-do-bebe/DOCUMENTO_DE_DESIGN_SISTEMA_ROTINA_DO_BEBE.md)
-- [rotinas_de_beb_s_at_2_anos_guia_completo.md](file:///C:/Users/eduar/Documents/git/rotina-do-bebe/rotinas_de_beb_s_at_2_anos_guia_completo.md)
+Aplicação Web PWA completa (**Frontend Angular 19+ Standalone/Signals** e **Backend .NET 10 Minimal APIs + SignalR + MongoDB / Persistência Híbrida**) que une todas as automações e motores clínicos do sistema **Rotina do Bebê** com o registro, alteração e visualização integral de todos os dados, formulários, tabelas, curvas, checklists e orientações oficiais da **Caderneta da Criança — Menina — Passaporte da Cidadania (5ª edição, Ministério da Saúde, 2022)**.
 
 ---
 
-## Arquitetura Implementada
+## 🔐 Controle de Acesso por Usuário (Google SSO)
 
-### 1. Back-End (.NET Minimal APIs + SignalR + MongoDB 8.0 / Hybrid Store)
-Localizado em `src/Backend/`:
-- **`BabyRoutine.Application`**:
-  - Modelos Polimórficos (`Family`, `Baby`, `RoutineEvent`, `AllergenTrial`, `MilestoneProgress`, `GrowthLog`, `VaccineRecord`) com suporte a **Idade Cronológica** e **Idade Corrigida** para prematuros (< 37 semanas).
-  - **Motores Clínicos e Algorítmicos**:
-    - `WakeWindowEngine`: Calcula a janela fisiológica de vigília por faixa etária (0 a 24 meses), *Sweet Spot* de sono e prontidão para transição de sonecas (4→3, 3→2, 2→1).
-    - `MedicationSafetyEngine`: Valida dosagem máxima por quilo (`mg/kg`) e bloqueia administrações antes do intervalo mínimo de segurança (6h para Paracetamol/Dipirona, 8h para Ibuprofeno).
-    - `PediatricStoolClassifier`: Triagem automática de sinais de alerta nas fezes (**Acolia Fecal** branca/acinzentada = Emergência; **Melena** preta = Urgente; **Sangue vivo / APLV** = Alta Prioridade; frequência diária de urina e prevenção de dermatites).
-    - `AllergenTrialEngine`: Monitoramento ativo da janela de 72 horas na introdução de alérgenos (ovo, peixe, amendoim, glúten, leite) e checklist de reações agudas.
-    - `PediatricReportEngine`: Consolidação clínica com curvas de crescimento OMS (Z-Score) para consultas pediátricas.
-- **`BabyRoutine.Infrastructure`**:
-  - `MongoDbContext` com criação automática dos 4 índices compostos (`idx_routine_baby_timestamp_desc`, `idx_routine_baby_category_timestamp`, `idx_routine_baby_medication_interval`, `idx_allergen_baby_status_monitoring`) e fallback híbrido em memória pré-populado (`SeedData`) para execução imediata mesmo sem instância MongoDB ativa.
-  - `MedicationReminderJob`: Serviço em background para atualização de janelas de 72h de alérgenos.
-- **`BabyRoutine.Api`**:
-  - Endpoints REST Minimal APIs organizados sob `/api/babies/{babyId}`, validação via `FluentValidation` e sincronização familiar em tempo real com `FamilyHub` (SignalR).
-- **`BabyRoutine.Tests`**:
-  - Suíte de testes unitários e de integração xUnit (`WebApplicationFactory<Program>`) validando todos os motores clínicos e endpoints.
-
-### 2. Front-End (Angular 19+ Standalone, Signals, PWA Offline-First)
-Localizado em `src/Frontend/`:
-- **Design System "Fricção Zero no Escuro" (Modo Madrugada `#0A0B0E`)**:
-  - Usa `<meta name="color-scheme" content="light dark">`, CSS `light-dark()`, `:has()` e suporte a *Forced Colors Mode* (Alto Contraste), com ativação automática entre 20h e 06h.
-- **Ergonomia de Uma Mão (`QuickActionBarComponent`)**:
-  - Barra inferior fixa para registro em 1 toque de Amamentação (alternando automaticamente o último seio), Soneca, Fralda (`U2`) e Medicação.
-- **Sincronização Offline (`OfflineSyncService` + IndexedDB) e Tempo Real (`FamilyRealtimeService` + SignalR)**.
+- **Criação Automática de Usuário via Conta Google**: O usuário é criado e autenticado exclusivamente a partir de uma conta Google via **Google SSO** (`POST /api/auth/google` suportando Google Identity Services OIDC `id_token`, OAuth 2.0 `access_token` ou `authorization_code`).
+- **Isolamento Estrito por Usuário (`ownerUserId`)**: Todos os filhos/bebês, eventos de rotina, curvas antropométricas e registros da Caderneta da Criança pertencem ao usuário autenticado via JWT (`ClaimTypes.NameIdentifier`).
 
 ---
 
-## Como Executar
+## ⚙️ Ações Automatizadas & Motores Clínicos (Paridade Total com `rotina-do-bebe`)
 
-### 1. Executar Testes Automatizados do Back-End
+1. **`WakeWindowEngine`**: Cálculo dinâmico de janelas de vigília (*Sweet Spot*), idade cronológica vs. idade gestacional corrigida para prematuros (< 37 semanas) e prontidão para transição de sestas (`NapTransitionReadiness`).
+2. **`MedicationSafetyEngine`**: Trava farmacológica contra sobredosagem com cálculo de dose máxima segura por peso (`mg/kg`), bloqueio temporal (`NextAllowedDoseAt`) e alerta de febre em menores de 3 meses (≥ 38,0 °C — pág. 62).
+3. **`PediatricStoolClassifier`**: Classificação automática de fraldas pela Escala Pediátrica de Fezes, alerta de desidratação (< 4 fraldas molhadas em 24h) e triagem da Escala de Cor das Fezes (cores 1, 2 e 3 suspeitas de atresia biliar — pág. 19–20).
+4. **`AllergenTrialEngine`**: Protocolo de monitoramento de 72 horas para introdução alimentar dos principais alérgenos (pág. 28–36).
+5. **`CadernetaClinicalEngine`**:
+   - Ajuste automático de **0,7 cm** entre comprimento (deitada, < 2 anos) e estatura (em pé, ≥ 2 anos) conforme pág. 88.
+   - Cálculo de IMC (`Peso kg / Estatura² m`) e Escores-Z com classificações oficiais separadas para **0 a 5 anos** vs. **5 a 10 anos** (pág. 90 a 100).
+   - **Instrumento de Avaliação do Desenvolvimento Integral da Criança** (*Desenvolvimento adequado*, *Alerta para o desenvolvimento* e *Provável atraso no desenvolvimento* — pág. 80).
+   - **Calculadora Oficial M-CHAT-R/F™** (20 questões para triagem de Transtorno do Espectro do Autismo entre 16 e 30 meses, com pontuação reversa nas questões 2, 5 e 12 — pág. 87).
+
+---
+
+## 📖 Cobertura Integral da Caderneta da Criança (Páginas 1 a 112)
+
+Todos os dados do bebê e ações da Caderneta podem ser **registrados, alterados (editados) e visualizados**:
+
+- **Parte I — Para a Família e Cuidadores (pág. 4 a 66)**:
+  - **Identificação da Criança (pág. 4)**: Foto, Nome, Data de Nascimento, Município, Filiação, Raça/Cor/Etnia, CPF, Cartão Nacional de Saúde (CNS), DNV, Certidão de Nascimento, Cartório, Número do Cadastro na UBS e Prontuário.
+  - **Mudança de Endereço (pág. 5)**, **Dados da Assistência Social / Bolsa Família / Auxílio Brasil / BPC / CRAS (pág. 6–7)** e **Vida Escolar / Creche / Ensino Fundamental (pág. 8–9)**.
+  - **Direitos da Criança e dos Pais (pág. 10–13)** e **Guias Ilustrados Oficiais (pág. 14–66)** com as 52 imagens oficiais integradas.
+- **Parte II — Registros de Saúde da Criança (pág. 67 a 111)**:
+  - **Pré-Natal, Parto, Nascimento e Vigilância de Infecções Congênitas (`A53` Sífilis, `B18` Hepatite B, `B58` Toxoplasmose, `Zika` — pág. 69)**.
+  - **Triagens Neonatais e Alta da Maternidade (pág. 70–71)**: Teste do Reflexo Vermelho (Olhinho), Teste do Coraçãozinho (Oximetria de Pulso), Teste da Orelhinha (EOA/PEATE), Teste do Pezinho (6 doenças do PNTN) e Anotações Neonatais.
+  - **10 Consultas Recomendadas do Nascimento aos 10 Anos (pág. 70–76)**: 1ª semana, 1 mês, 2 meses, 4 meses, 6 meses, 9 meses, 12 meses, 18 meses, 24 meses e 36 meses, mais **Pressão Arterial (PA — pág. 77)**.
+  - **Vigilância do Desenvolvimento Infantil (pág. 78–87)**: Fatores de risco, alterações fenotípicas, **todos os 52 marcos oficiais (`P`, `A`, `NV`)**, desenvolvimento de 6 a 10 anos e **M-CHAT-R/F™ (20 questões)**.
+  - **Vigilância do Crescimento Infantil (pág. 88–100)**: Registro, edição e exclusão de medidas, regra de 0,7 cm, RNPT e galeria com os **11 gráficos oficiais Intergrowth-21 e OMS**.
+  - **Saúde Bucal (pág. 101–102)**: Cronologia de erupção, **Odontograma interativo dos 20 dentes decíduos** e consultas odontológicas.
+  - **Suplementação (pág. 103)**: 9 megadoses de **Vitamina A** + **Ferro / NutriSUS**.
+  - **Vacinação (pág. 104–106)**: Todas as **29 doses do Calendário Nacional de Vacinação** + **Outras Vacinas e Campanhas**.
+  - **Anotações Gerais (pág. 107)** e **Agenda de Consultas e Atendimentos (pág. 108)**.
+
+---
+
+## 🚀 Como Executar
+
+### 1. Backend (.NET 10)
 ```powershell
-& "C:\Program Files\dotnet\dotnet.exe" test src\Backend\BabyRoutine.slnx
+cd caderneta-do-bebe/src/Backend/BabyRoutine.Api
+dotnet run
 ```
 
-### 2. Iniciar a API Back-End (.NET)
+### 2. Testes Automatizados do Backend
 ```powershell
-& "C:\Program Files\dotnet\dotnet.exe" run --project src\Backend\BabyRoutine.Api\BabyRoutine.Api.csproj --urls "http://localhost:5000"
+cd caderneta-do-bebe/src/Backend/BabyRoutine.Tests
+dotnet test
 ```
 
-### 3. Iniciar o Front-End (Angular 19 PWA)
+### 3. Frontend (Angular 19+)
 ```powershell
-cd src\Frontend
+cd caderneta-do-bebe/src/Frontend
+npm install
 npm start
 ```
-Acesse em `http://localhost:4200`.

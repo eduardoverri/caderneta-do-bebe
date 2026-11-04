@@ -14,19 +14,263 @@ export interface ActiveMedication {
 }
 
 export interface GrowthLog {
+  id?: string;
   measuredAt: string;
+  ageDays?: number;
+  correctedGestationalWeeks?: number;
   weightGrams: number;
   heightCm: number;
+  measuredPosition?: string;
+  adjustedHeightCm?: number;
   headCircumferenceCm: number;
+  bmi?: number;
+  bloodPressureSystolic?: number;
+  bloodPressureDiastolic?: number;
+  bloodPressureObservations?: string;
   zScoreWeightForAge: number;
+  zScoreHeightForAge?: number;
+  zScoreHeadCircumference?: number;
+  zScoreBmiForAge?: number;
+  classificationWeight?: string;
+  classificationHeight?: string;
+  classificationHeadCircumference?: string;
+  classificationBmi?: string;
+  notes?: string;
 }
 
 export interface VaccineRecord {
   code: string;
   name: string;
+  doseLabel?: string;
+  ageGroupSection?: string;
   recommendedMonth: number;
+  diseasesPrevented?: string;
   status: 'Pending' | 'Applied' | 'Overdue';
   appliedAt?: string;
+  lot?: string;
+  laboratory?: string;
+  healthUnit?: string;
+  signature?: string;
+}
+
+export interface ChildIdentification {
+  photoUrl: string;
+  birthMunicipality: string;
+  motherName: string;
+  fatherName: string;
+  guardianName: string;
+  ethnicity: string;
+  raceColor: string;
+  address: string;
+  referencePoint: string;
+  phone: string;
+  cep: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  ubsName: string;
+  dseiPoloBase: string;
+  cnsNumber: string;
+  dnvNumber: string;
+  birthCertificateNumber: string;
+  cpf: string;
+}
+
+export interface AddressChangeRecord {
+  id: string;
+  recordedAt: string;
+  address: string;
+  referencePoint: string;
+  phone: string;
+  cep: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  ubsName: string;
+}
+
+export interface SocialAssistanceRecord {
+  childNis: string;
+  guardianNis: string;
+  crasName: string;
+  crasPhone: string;
+  crasAddress: string;
+  bolsaFamiliaEnrolled: boolean;
+  bolsaFamiliaEntryYear: string;
+  bolsaFamiliaExitYear: string;
+  bpcEnrolled: boolean;
+  bpcEntryYear: string;
+  bpcExitYear: string;
+  criancaFelizEnrolled: boolean;
+  criancaFelizEntryYear: string;
+  criancaFelizExitYear: string;
+  otherPrograms: { id: string; programName: string; enrolled: boolean; entryYear: string; exitYear: string }[];
+  socialNotes: { id: string; date: string; note: string; professionalOrCras: string }[];
+}
+
+export interface SchoolLifeRecord {
+  id: string;
+  year: string;
+  gradeType: string;
+  series: string;
+  establishmentName: string;
+  institutionNature: string;
+  observations: string;
+}
+
+export interface PrenatalBirthRecord {
+  plannedPregnancy: boolean;
+  hadPrenatalCare: boolean;
+  prenatalConsultationsCount: number;
+  startedTrimester: string;
+  pregnancyType: string;
+  highRiskPregnancy: boolean;
+  highRiskReason: string;
+  serologies: { cid10Code: string; conditionName: string; trimester1: string; trimester2: string; trimester3: string }[];
+  vaccineDtpa: boolean;
+  vaccineInfluenza: boolean;
+  vaccineHepatitisB: boolean;
+  vaccineCovid19: boolean;
+  birthPlaceType: string;
+  birthPlaceOther: string;
+  maternityName: string;
+  deliveryType: string;
+  cesareanReason: string;
+  companionsAtBirth: string;
+  birthTime: string;
+  skinToSkinContact: boolean;
+  breastfedFirstHour: boolean;
+  apgar1Min: number;
+  apgar5Min: number;
+  timelyCordClamping: boolean;
+  igMethod: string;
+  birthWeightGrams: number;
+  birthLengthCm: number;
+  birthHeadCircumferenceCm: number;
+  weightForGestationalAge: string;
+  neonatalResuscitation: boolean;
+  assistedBy: string;
+  motherBloodType: string;
+  indirectCoombs: string;
+  babyBloodType: string;
+  directCoombs: string;
+  ophthalmicProphylaxis: boolean;
+  ophthalmicReason: string;
+  hemorrhagicProphylaxisVitK: boolean;
+  vitKReason: string;
+  wasHospitalized: boolean;
+  hospitalizationUnit: string;
+  hospitalizationDays: number;
+  hospitalizationReason: string;
+  dischargeReport: string;
+  dischargeDate?: string;
+  dischargeWeightGrams: number;
+  dischargeLengthCm: number;
+  dischargeFeeding: string;
+}
+
+export interface NeonatalScreeningRecord {
+  generalScreeningDate?: string;
+  redReflexPerformed: boolean;
+  redReflexDate?: string;
+  redReflexRightEye: string;
+  redReflexLeftEye: string;
+  redReflexObservations: string;
+  pulseOximetryPerformed: boolean;
+  pulseOximetryDate?: string;
+  pulseOximetryResult: string;
+  pulseOximetryObservations: string;
+  hearingScreeningPerformed: boolean;
+  hearingScreeningDate?: string;
+  hearingMethod: string;
+  hearingRightEar: string;
+  hearingLeftEar: string;
+  hearingConduct: string;
+  heelPrickPerformed: boolean;
+  heelPrickDate?: string;
+  heelPrickRetest: boolean;
+  heelPrickRetestDate?: string;
+  heelPrickResult: string;
+  heelPrickReferral: string;
+  heelPrickObservations: string;
+}
+
+export interface RoutineConsultationRecord {
+  code: string;
+  title: string;
+  recommendedAgeLabel: string;
+  pageReference: string;
+  completed: boolean;
+  consultationDate?: string;
+  headCircumferenceCm?: number;
+  weightGrams?: number;
+  lengthOrHeightCm?: number;
+  bmi?: number;
+  bloodPressure: string;
+  feedingType: string;
+  feedingNotes: string;
+  alertSigns: { label: string; present: boolean }[];
+  ocularExam: string;
+  developmentEvaluation: string;
+  vaccinesChecked: boolean;
+  ironSupplementationChecked: boolean;
+  micronutrientsChecked: boolean;
+  vitaminAChecked: boolean;
+  dentalChecked: boolean;
+  accidentPreventionChecked: boolean;
+  violenceSignsChecked: boolean;
+  screenTimeChecked: boolean;
+  affectionBondsNotes: string;
+  professionalAndUnit: string;
+  generalNotes: string;
+}
+
+export interface DevelopmentSurveillanceRecord {
+  riskFactors: { code: string; label: string; present: boolean }[];
+  phenotypicAlterations: { code: string; label: string; present: boolean }[];
+  overallClassification: string;
+  notes6To10Years: { ageBand: string; observations: string; updatedAt?: string }[];
+  mChatRQuestions: { number: number; questionText: string; exampleText: string; answer: string; reverseScored: boolean }[];
+  mChatREvaluatedAt?: string;
+  mChatRClinicalNotes: string;
+}
+
+export interface DentalRecord {
+  eruptionGroups: { code: string; groupName: string; arch: string; expectedMonthsRange: string; eruptionMonth?: number }[];
+  odontogramTeeth: { code: string; name: string; arch: string; side: string; status: string; eruptionMonth?: number; notes: string }[];
+  consultations: { id: string; date: string; tooth: string; proceduresAndOrientations: string; returnDate?: string; signatureAndHealthUnit: string }[];
+}
+
+export interface SupplementationRecord {
+  vitaminADoses: { slotNumber: number; agePeriodLabel: string; appliedDate?: string; healthUnitAndSignature: string }[];
+  ironAndMicronutrients: { id: string; deliveryDate: string; childAge: string; supplementDistributed: string; quantityDistributed: string; signature: string }[];
+}
+
+export interface CampaignVaccineRecord {
+  id: string;
+  vaccineName: string;
+  date: string;
+  dose: string;
+  lot: string;
+  healthUnit: string;
+  signature: string;
+}
+
+export interface CadernetaNoteRecord {
+  id: string;
+  date: string;
+  note: string;
+  author: string;
+}
+
+export interface AgendaEntryRecord {
+  id: string;
+  entryType: string;
+  date: string;
+  timeOrSlot: string;
+  professionalOrUnit: string;
+  notes: string;
+  status: string;
 }
 
 export interface BabyModel {
@@ -49,6 +293,22 @@ export interface BabyModel {
   allergies: string[];
   growthLogs: GrowthLog[];
   vaccines: VaccineRecord[];
+
+  // Caderneta da Criança — Menina (5ª Edição - MS, 2022)
+  identification?: ChildIdentification;
+  addressHistory?: AddressChangeRecord[];
+  socialAssistance?: SocialAssistanceRecord;
+  educationRecords?: SchoolLifeRecord[];
+  prenatalAndBirth?: PrenatalBirthRecord;
+  neonatalScreenings?: NeonatalScreeningRecord;
+  scheduledConsultations?: RoutineConsultationRecord[];
+  rnptObservations?: string;
+  developmentSurveillance?: DevelopmentSurveillanceRecord;
+  dental?: DentalRecord;
+  supplementation?: SupplementationRecord;
+  campaignVaccines?: CampaignVaccineRecord[];
+  generalNotes?: CadernetaNoteRecord[];
+  appointmentsAgenda?: AgendaEntryRecord[];
 }
 
 export interface FamilyMember {
@@ -302,7 +562,7 @@ export class BabyStore {
     for (const item of [...a, ...b]) {
       if (!item) continue;
       const dateKey = (item.measuredAt ?? '').slice(0, 16);
-      const key = `${dateKey}_${item.weightGrams}_${item.heightCm}_${item.headCircumferenceCm}`;
+      const key = item.id || `${dateKey}_${item.weightGrams}_${item.heightCm}_${item.headCircumferenceCm}`;
       map.set(key, item);
     }
     return Array.from(map.values()).sort(
@@ -318,7 +578,7 @@ export class BabyStore {
       birthDate: new Date().toISOString(),
       gestationalWeeks: 40,
       gestationalDays: 0,
-      gender: '',
+      gender: 'F',
       birthWeightGrams: 0,
       birthLengthCm: 0,
       currentWeightGrams: 0,

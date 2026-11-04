@@ -321,6 +321,148 @@ public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Single(timelineAfterDeploy.GetProperty("events").EnumerateArray());
     }
 
+    [Fact]
+    public void CadernetaClinicalEngine_Applies07CmHeightRuleAndMChatREvaluation()
+    {
+        // Regra de 0,7 cm (página 88): < 2 anos medida em pé soma 0,7 cm; >= 2 anos medida deitada subtrai 0,7 cm
+        var adjustedUnder2Standing = CadernetaClinicalEngine.CalculateAdjustedHeightCm(75.0, ageDays: 400, "Em pé (Estatura)");
+        Assert.Equal(75.7, adjustedUnder2Standing);
+
+        var adjustedOver2Lying = CadernetaClinicalEngine.CalculateAdjustedHeightCm(88.0, ageDays: 800, "Deitada (Comprimento)");
+        Assert.Equal(87.3, adjustedOver2Lying);
+
+        // Classificação M-CHAT-R/F™ (página 87)
+        var questions = BabyRoutine.Infrastructure.Persistence.SeedData.CreateDefaultMChatRQuestions();
+        var lowRisk = CadernetaClinicalEngine.EvaluateMChatR(questions);
+        Assert.Equal(0, lowRisk.RiskScore);
+        Assert.Contains("Baixo Risco", lowRisk.RiskClassification);
+
+        // Questão 2 é reverse-scored ("Sim" = risco); Questões 1, 3, 6 ("Não" = risco) => 4 pontos (Risco Moderado)
+        questions.First(q => q.Number == 2).Answer = "Sim";
+        questions.First(q => q.Number == 1).Answer = "Não";
+        questions.First(q => q.Number == 3).Answer = "Não";
+        questions.First(q => q.Number == 6).Answer = "Não";
+
+        var modRisk = CadernetaClinicalEngine.EvaluateMChatR(questions);
+        Assert.Equal(4, modRisk.RiskScore);
+        Assert.Contains("Risco Moderado", modRisk.RiskClassification);
+    }
+
+    [Fact]
+    public async Task CadernetaFullCrud_AllowsRegisteringAlteringAndViewingAllCadernetaSectionsAndEvents()
+    {
+        var client = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<IGoogleSsoValidator>();
+                services.AddSingleton<IGoogleSsoValidator, TestGoogleSsoValidator>();
+            });
+        }).CreateClient();
+
+        var authRes = await client.PostAsJsonAsync("/api/auth/google",
+            new GoogleLoginRequestDto(IdToken: "test-google-token:sub-caderneta:mae.helena@gmail.com:Helena"));
+        authRes.EnsureSuccessStatusCode();
+        var authPayload = await authRes.Content.ReadFromJsonAsync<JsonElement>();
+        var token = authPayload.GetProperty("token").GetString()!;
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var createRes = await client.PostAsJsonAsync("/api/babies", new CreateChildRequestDto(
+            Name: "Sofia Mendes",
+            BirthDate: DateTime.UtcNow.AddMonths(-8),
+            GestationalWeeks: 38,
+            GestationalDays: 4,
+            Gender: "F",
+            BirthWeightGrams: 3180,
+            BirthLengthCm: 49.0,
+            CurrentWeightGrams: 8200,
+            CurrentHeightCm: 69.5,
+            HeadCircumferenceCm: 43.8,
+            BloodType: "A+"
+        ));
+        createRes.EnsureSuccessStatusCode();
+        var baby = await createRes.Content.ReadFromJsonAsync<Baby>();
+        Assert.NotNull(baby);
+        Assert.True(baby!.Vaccines.Count >= 30);
+        Assert.Equal(10, baby.ScheduledConsultations.Count);
+        Assert.Equal(20, baby.Dental.OdontogramTeeth.Count);
+        Assert.Equal(20, baby.DevelopmentSurveillance.MChatRQuestions.Count);
+
+        // 1. Alterar Identificação (p. 4), Endereços (p. 5), Assistência Social (p. 6-7) e Vida Escolar (p. 8-9)
+        baby.Identification.CnsNumber = "700001234567890";
+        baby.Identification.UbsName = "UBS Vila Mariana";
+        baby.Identification.MotherName = "Helena Mendes";
+        baby.SocialAssistance.BolsaFamiliaEnrolled = true;
+        baby.SocialAssistance.BolsaFamiliaEntryYear = "2025";
+        baby.AddressHistory.Add(new AddressChangeRecord { Address = "Rua das Flores, 123", City = "São Paulo", State = "SP", UbsName = "UBS Vila Mariana" });
+        baby.EducationRecords.Add(new SchoolLifeRecord { Year = "2026", GradeType = "Berçário I", EstablishmentName = "CEI Estrelinha", InstitutionNature = "Pública" });
+
+        var idRes = await client.PutAsJsonAsync($"/api/babies/{baby.Id}/identification", new
+        {
+            name = "Sofia Mendes Atualizada",
+            identification = baby.Identification,
+            addressHistory = baby.AddressHistory,
+            socialAssistance = baby.SocialAssistance,
+            educationRecords = baby.EducationRecords
+        });
+        idRes.EnsureSuccessStatusCode();
+        var updatedBaby = await idRes.Content.ReadFromJsonAsync<Baby>();
+        Assert.Equal("Sofia Mendes Atualizada", updatedBaby!.Name);
+        Assert.Equal("700001234567890", updatedBaby.Identification.CnsNumber);
+        Assert.Single(updatedBaby.AddressHistory);
+        Assert.Single(updatedBaby.EducationRecords);
+
+        // 2. Alterar Odontograma (p. 101-102) e Vacinas + Campanhas (p. 104-106)
+        updatedBaby.Dental.OdontogramTeeth.First(t => t.Code == "71").Status = "Erupcionado";
+        updatedBaby.Dental.Consultations.Add(new DentalConsultationEntry
+        {
+            Tooth = "71, 81",
+            ProceduresAndOrientations = "Orientação sobre escovação com creme dental fluoretado (1000 ppm - grão de arroz)",
+            SignatureAndHealthUnit = "Dra. Camila CRO-SP"
+        });
+        var dentalRes = await client.PutAsJsonAsync($"/api/babies/{baby.Id}/dental", updatedBaby.Dental);
+        dentalRes.EnsureSuccessStatusCode();
+
+        var vaxRes = await client.PutAsJsonAsync($"/api/babies/{baby.Id}/vaccines/BCG", new
+        {
+            status = "Applied",
+            appliedAt = DateTime.UtcNow.AddMonths(-8),
+            lot = "LOTE-BCG-99",
+            laboratory = "FAP",
+            healthUnit = "Maternidade Santa Joana",
+            signature = "Enf. Paula"
+        });
+        vaxRes.EnsureSuccessStatusCode();
+
+        // 3. Registrar, Alterar (PUT) e Excluir (DELETE) Evento de Rotina
+        var evCreate = await client.PostAsJsonAsync($"/api/babies/{baby.Id}/events", new
+        {
+            category = RoutineCategory.Sleep,
+            timestamp = DateTime.UtcNow.AddHours(-2),
+            endTimestamp = DateTime.UtcNow.AddHours(-1),
+            durationMinutes = 60,
+            recordedByName = "Helena",
+            details = new RoutineEventDetails { SleepType = "Nap", SleepLocation = "Crib" },
+            notes = "Soneca da manhã"
+        });
+        evCreate.EnsureSuccessStatusCode();
+        var createdEv = await evCreate.Content.ReadFromJsonAsync<RoutineEvent>();
+        Assert.NotNull(createdEv);
+
+        var evUpdate = await client.PutAsJsonAsync($"/api/babies/{baby.Id}/events/{createdEv!.Id}", new
+        {
+            durationMinutes = 75,
+            notes = "Soneca da manhã prolongada (alterado)"
+        });
+        evUpdate.EnsureSuccessStatusCode();
+        var updatedEv = await evUpdate.Content.ReadFromJsonAsync<RoutineEvent>();
+        Assert.Equal(75, updatedEv!.DurationMinutes);
+        Assert.Equal("Soneca da manhã prolongada (alterado)", updatedEv.Notes);
+
+        var evDelete = await client.DeleteAsync($"/api/babies/{baby.Id}/events/{createdEv.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, evDelete.StatusCode);
+    }
+
     private sealed class TestGoogleSsoValidator : IGoogleSsoValidator
     {
         public Task<GoogleSsoPayload> ValidateAsync(GoogleLoginRequestDto dto, CancellationToken ct = default)

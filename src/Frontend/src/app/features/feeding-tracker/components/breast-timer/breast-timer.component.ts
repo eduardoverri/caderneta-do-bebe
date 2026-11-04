@@ -9,94 +9,99 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
   standalone: true,
   imports: [FormsModule, OfficialReferenceComponent],
   template: `
-    <div class="card" style="border-top: 4px solid var(--cat-feeding);">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h3 class="section-title" style="margin-bottom: 0;">
-          <span aria-hidden="true">🤱</span>
-          <span>Amamentando o Bebê — Livre Demanda e Tempo de Mamada</span>
-        </h3>
-        <span class="badge badge-feeding">
-          Último lado: {{ store.lastBreastSide() === 'Left' ? 'Esquerdo' : 'Direito' }}
-        </span>
-      </div>
-
-      <!-- Contador Principal -->
-      <div style="text-align: center; margin: 1rem 0;">
-        <div style="font-size: 0.78rem; color: var(--text-secondary); text-transform: uppercase;">Tempo Total da Mamada</div>
-        <div class="mono-timer" style="font-size: 2.8rem; font-weight: 800; color: var(--cat-feeding);">
-          {{ totalDurationFormatted() }}
+    <div class="grid-2">
+      <!-- Card 1: Cronômetro de Amamentação no Peito -->
+      <div class="card" style="border-top: 4px solid var(--cat-feeding);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem;">
+          <h3 class="section-title" style="margin-bottom: 0;">
+            <span aria-hidden="true">🤱</span>
+            <span>Amamentação no Peito</span>
+          </h3>
+          <span class="badge badge-feeding">
+            Última mama: {{ store.lastBreastSide() === 'Left' ? 'Esquerda' : 'Direita' }}
+          </span>
         </div>
-      </div>
 
-      <div class="grid-2" style="margin-bottom: 1rem;">
-        <!-- Mama Esquerda -->
+        <div style="text-align: center; margin: 0.85rem 0;">
+          <div style="font-size: 0.74rem; color: var(--text-secondary); font-weight: 700; text-transform: uppercase;">Tempo Total</div>
+          <div class="mono-timer" style="font-size: 2.5rem; font-weight: 800; color: var(--cat-feeding);">
+            {{ totalDurationFormatted() }}
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom: 0.85rem;">
+          <button
+            type="button"
+            class="btn"
+            [style.border-width]="activeSide() === 'Left' ? '3px' : '1px'"
+            [style.border-color]="activeSide() === 'Left' ? 'var(--cat-feeding)' : 'var(--border-strong)'"
+            style="flex-direction: column; padding: 1rem;"
+            (click)="toggleSide('Left')">
+            <span style="font-size: 0.84rem; color: var(--text-secondary);">Mama Esquerda</span>
+            <span class="mono-timer" style="font-size: 1.55rem; font-weight: 800;">{{ leftDurationFormatted() }}</span>
+            <span style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.2rem;">
+              {{ activeSide() === 'Left' ? '● Gravando...' : 'Toque para iniciar' }}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            class="btn"
+            [style.border-width]="activeSide() === 'Right' ? '3px' : '1px'"
+            [style.border-color]="activeSide() === 'Right' ? 'var(--cat-feeding)' : 'var(--border-strong)'"
+            style="flex-direction: column; padding: 1rem;"
+            (click)="toggleSide('Right')">
+            <span style="font-size: 0.84rem; color: var(--text-secondary);">Mama Direita</span>
+            <span class="mono-timer" style="font-size: 1.55rem; font-weight: 800;">{{ rightDurationFormatted() }}</span>
+            <span style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.2rem;">
+              {{ activeSide() === 'Right' ? '● Gravando...' : 'Toque para iniciar' }}
+            </span>
+          </button>
+        </div>
+
         <button
           type="button"
-          class="btn"
-          [style.border-width]="activeSide() === 'Left' ? '3px' : '1px'"
-          [style.border-color]="activeSide() === 'Left' ? 'var(--cat-feeding)' : 'var(--border-strong)'"
-          style="flex-direction: column; padding: 1.25rem;"
-          (click)="toggleSide('Left')">
-          <span style="font-size: 0.9rem; color: var(--text-secondary);">Mama Esquerda</span>
-          <span class="mono-timer" style="font-size: 1.75rem; font-weight: 800;">{{ leftDurationFormatted() }}</span>
-          @if (activeSide() === 'Left') {
-            <span class="badge badge-feeding" style="margin-top: 0.35rem;">● Gravando...</span>
-          } @else {
-            <span style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.35rem;">Toque para iniciar/pausar</span>
-          }
+          class="btn btn-feeding"
+          style="width: 100%;"
+          (click)="saveFeedingSession()">
+          <span aria-hidden="true">💾</span>
+          <span>Salvar Mamada no Peito</span>
         </button>
 
-        <!-- Mama Direita -->
-        <button
-          type="button"
-          class="btn"
-          [style.border-width]="activeSide() === 'Right' ? '3px' : '1px'"
-          [style.border-color]="activeSide() === 'Right' ? 'var(--cat-feeding)' : 'var(--border-strong)'"
-          style="flex-direction: column; padding: 1.25rem;"
-          (click)="toggleSide('Right')">
-          <span style="font-size: 0.9rem; color: var(--text-secondary);">Mama Direita</span>
-          <span class="mono-timer" style="font-size: 1.75rem; font-weight: 800;">{{ rightDurationFormatted() }}</span>
-          @if (activeSide() === 'Right') {
-            <span class="badge badge-feeding" style="margin-top: 0.35rem;">● Gravando...</span>
-          } @else {
-            <span style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.35rem;">Toque para iniciar/pausar</span>
-          }
-        </button>
+        <details class="info-disclosure">
+          <summary>💡 Pega da Mama e Livre Demanda (pág. 24 a 26)</summary>
+          <div class="info-disclosure-body">
+            <ul>
+              <li><strong>Livre demanda:</strong> Exclusivo até 6 meses (sem água, chás ou outros leites) e mantido até 2 anos ou mais.</li>
+              <li><strong>Boa pega:</strong> Barriga com barriga, boca bem aberta, lábios virados para fora, queixo tocando a mama e nariz livre.</li>
+              <li><strong>Leite posterior:</strong> O leite do fim da mamada é rico em gordura, sacia e faz ganhar peso.</li>
+            </ul>
+            <app-official-reference page="p. 24 a 26" />
+          </div>
+        </details>
       </div>
 
-      <button
-        type="button"
-        class="btn btn-feeding"
-        style="width: 100%; margin-bottom: 1.15rem;"
-        (click)="saveFeedingSession()">
-        <span aria-hidden="true">💾</span>
-        <span>Concluir e Salvar Mamada no Peito</span>
-      </button>
-
-      <!-- Registro de Leite Materno Extraído ou Leite Artificial (em Mililitros - mL) -->
-      <div class="card-elevated" style="border-top: 3px solid var(--cat-sleep); margin-bottom: 1rem;">
-        <h4 style="font-size: 0.92rem; font-weight: 800; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
+      <!-- Card 2: Leite Materno Extraído ou Fórmula (mL) -->
+      <div class="card" style="border-top: 4px solid var(--cat-sleep);">
+        <h3 class="section-title">
           <span aria-hidden="true">🥛</span>
-          <span>Registrar Leite Materno Extraído ou Leite Artificial (mL)</span>
-        </h4>
-        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.65rem;">
-          O leite retirado deve ser oferecido, de preferência, em um copo, uma xícara ou uma colher. Não ofereça mamadeiras e chupetas nem use protetores de silicone, pois atrapalham a amamentação (pág. 25 e 30).
-        </p>
+          <span>Leite Extraído ou Fórmula (mL)</span>
+        </h3>
 
         <div class="grid-2" style="margin-bottom: 0.75rem;">
           <div>
-            <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Tipo de Oferta</label>
+            <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Tipo de Oferta</label>
             <select
               class="input-field"
               [ngModel]="bottleType()"
               (ngModelChange)="bottleType.set($event)">
-              <option value="ExpressedMilk">Leite Materno Extraído (em copo, xícara ou colher — pág. 30)</option>
-              <option value="Formula">Leite Artificial (LM+LA / LA — pág. 69 a 76)</option>
+              <option value="ExpressedMilk">Leite Materno Extraído (copinho/colher)</option>
+              <option value="Formula">Leite Artificial / Fórmula (LA)</option>
             </select>
           </div>
 
           <div>
-            <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Volume (mL)</label>
+            <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Volume (mL)</label>
             <input
               type="number"
               class="input-field"
@@ -108,12 +113,12 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
           </div>
         </div>
 
-        <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.75rem;">
+        <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.85rem;">
           @for (vol of presetVolumes; track vol) {
             <button
               type="button"
               class="btn"
-              style="padding: 0.25rem 0.55rem; min-height: 30px; font-size: 0.76rem;"
+              style="padding: 0.25rem 0.55rem; min-height: 32px; font-size: 0.76rem;"
               [class.btn-sleep]="bottleVolumeMl() === vol"
               (click)="bottleVolumeMl.set(vol)">
               {{ vol }} mL
@@ -127,22 +132,20 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
           style="width: 100%;"
           (click)="saveBottleFeeding()">
           <span aria-hidden="true">🥛</span>
-          <span>Registrar {{ bottleType() === 'Formula' ? 'Leite Artificial' : 'Leite Materno Extraído' }} ({{ bottleVolumeMl() }} mL)</span>
+          <span>Registrar {{ bottleType() === 'Formula' ? 'Fórmula' : 'Leite Extraído' }} ({{ bottleVolumeMl() }} mL)</span>
         </button>
-      </div>
 
-      <!-- Orientações Oficiais sobre Tempo de Mamada, Pega da Mama e Quantidade do Leite (pág. 24 a 30) -->
-      <div class="card-elevated" style="font-size: 0.85rem;">
-        <div style="font-weight: 700; color: var(--cat-feeding); margin-bottom: 0.3rem;">
-          ✅ Orientações oficiais — Pega da mama, Tempo de mamada e Conservação do leite:
-        </div>
-        <ul style="padding-left: 1.2rem; color: var(--text-secondary);">
-          <li><strong>Importância do leite materno:</strong> O leite materno é um alimento completo e é recomendado para as crianças até os 2 anos de idade ou mais. Até os 6 meses de idade, deve ser o único alimento, ou seja, sua filha não precisa de chá, suco, água, outro leite ou alimento. Inicialmente, o bebê mama de 8 a 12 vezes por dia, sem horários fixos.</li>
-          <li><strong>Posição e pega da mama:</strong> O bebê deve estar virado de frente para você, bem junto do seu corpo (barriga com barriga), bem apoiado e com os braços livres. Só coloque sua filha para sugar quando ela abrir bem a boca: o queixo encosta na mama, os lábios ficam virados para fora, o nariz fica livre e a aréola aparece mais na parte de cima do que na parte de baixo da boca.</li>
-          <li><strong>Tempo de mamada:</strong> Cada bebê tem seu próprio ritmo de mamar e ele deve ser respeitado. Deixe sua filha mamar até que fique satisfeita. Não tenha pressa. Depois da mamada, coloque-a na posição vertical, para arrotar. O leite do início da mamada tem mais água e mata a sede. Já o leite do fim tem mais gordura, satisfaz a fome e faz o bebê ganhar peso.</li>
-          <li><strong>Como conservar o leite materno extraído:</strong> Pode ser conservado em geladeira por até 12 horas e no <em>freezer</em> ou no congelador por até 15 dias, contados a partir da data da primeira retirada. Para manter seus fatores de proteção, o leite materno não deve ser fervido e nem aquecido em micro-ondas (aquecer em banho-maria com o fogo desligado).</li>
-        </ul>
-        <app-official-reference page="Caderneta da Criança, p. 24: importância do leite materno; p. 25: posição e pega da mama; p. 26: tempo de mamada; p. 28 a 30: extração e conservação do leite materno" />
+        <details class="info-disclosure">
+          <summary>💡 Conservação do Leite Materno Extraído (pág. 28 a 30)</summary>
+          <div class="info-disclosure-body">
+            <ul>
+              <li>Conservar em geladeira por até <strong>12 horas</strong> e no freezer/congelador por até <strong>15 dias</strong>.</li>
+              <li>Aquecer em banho-maria (fogo desligado); nunca ferver nem usar micro-ondas.</li>
+              <li>Oferecer preferencialmente em copo, xícara ou colher (evitar bicos, chupetas e mamadeiras).</li>
+            </ul>
+            <app-official-reference page="p. 28 a 30" />
+          </div>
+        </details>
       </div>
     </div>
   `

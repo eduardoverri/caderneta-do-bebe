@@ -1,70 +1,57 @@
 import { Component, inject } from '@angular/core';
 import { RoutineStore } from '../../../../core/state/routine.store';
 import { DurationPipe } from '../../../../shared/pipes/duration.pipe';
-import { OfficialReferenceComponent } from '../../../../shared/components/official-reference/official-reference.component';
 
 @Component({
   selector: 'app-daily-summary-cards',
   standalone: true,
-  imports: [DurationPipe, OfficialReferenceComponent],
+  imports: [DurationPipe],
   template: `
-    <div class="grid-3" style="margin: 1rem 0;">
+    <div class="grid-3">
       <!-- Card 1: Última Mamada / Alimentação -->
-      <div class="card" style="border-top: 4px solid var(--cat-feeding);">
+      <div class="card" style="border-top: 4px solid var(--cat-feeding); padding: 0.85rem 1rem;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span class="badge badge-feeding">
-            <span aria-hidden="true">🤱</span>
-            <span>ÚLTIMA ALIMENTAÇÃO</span>
+          <span class="badge badge-feeding">🤱 ALIMENTAÇÃO</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">
+            Próx. mama: {{ store.lastBreastSide() === 'Left' ? 'Direita' : 'Esquerda' }}
           </span>
-          <span style="font-size: 0.78rem; color: var(--text-muted);">Próx. peito: {{ store.lastBreastSide() === 'Left' ? 'Direito' : 'Esquerdo' }}</span>
         </div>
-        <div style="font-size: 1.15rem; font-weight: 800; margin-top: 0.6rem;">
+        <div style="font-size: 1.08rem; font-weight: 800; margin-top: 0.45rem;">
           {{ store.lastFeedingSummary() }}
         </div>
-        <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.25rem;">
-          Amamentação sem horários fixos (em geral 8 a 12 vezes ao dia) • alimentos a partir dos 6 meses
-        </div>
       </div>
 
-      <!-- Card 2: A Troca de Fraldas, as Fezes e a Hidratação -->
-      <div class="card" style="border-top: 4px solid var(--cat-diaper);">
+      <!-- Card 2: Troca de Fraldas e Hidratação -->
+      <div class="card" style="border-top: 4px solid var(--cat-diaper); padding: 0.85rem 1rem;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span class="badge badge-diaper">
-            <span aria-hidden="true">🧷</span>
-            <span>TROCA DE FRALDAS & FEZES</span>
+          <span class="badge badge-diaper">🧷 FRALDAS HOJE</span>
+          <span style="font-size: 0.75rem; font-weight: 700;">
+            {{ store.urineOrMixedCount() }}💧 • {{ store.stoolOrMixedCount() }}💩 ({{ store.totalDiaperChanges() }} total)
           </span>
-          <span style="font-size: 0.78rem; font-weight: 700;">{{ store.totalDiaperChanges() }} trocas hoje</span>
         </div>
-        <div style="font-size: 1.15rem; font-weight: 800; margin-top: 0.6rem;">
+        <div style="font-size: 1.08rem; font-weight: 800; margin-top: 0.45rem;">
           {{ store.lastDiaperSummary() }}
         </div>
-        <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.25rem;">
-          @if (store.isLowHydrationAlert()) {
-            <span aria-hidden="true">⚠️</span> {{ store.hydrationStatusMessage() }}
-          } @else {
-            <span aria-hidden="true">✅</span> {{ store.urineOrMixedCount() }} urinas • {{ store.stoolOrMixedCount() }} evacuações (higiene com água morna, sem talco)
-          }
-        </div>
+        @if (store.isLowHydrationAlert()) {
+          <div style="font-size: 0.76rem; color: var(--cat-health); font-weight: 700; margin-top: 0.2rem;">
+            ⚠️ {{ store.hydrationStatusMessage() }}
+          </div>
+        }
       </div>
 
-      <!-- Card 3: O Sono da Criança -->
-      <div class="card" style="border-top: 4px solid var(--cat-sleep);">
+      <!-- Card 3: Sono do Dia -->
+      <div class="card" style="border-top: 4px solid var(--cat-sleep); padding: 0.85rem 1rem;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span class="badge badge-sleep">
-            <span aria-hidden="true">💤</span>
-            <span>O SONO DA CRIANÇA</span>
+          <span class="badge badge-sleep">💤 SONO HOJE</span>
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">
+            Meta: {{ store.expectedNaps() }} sonecas
           </span>
-          <span style="font-size: 0.78rem; color: var(--text-muted);">Referência: {{ store.expectedNaps() }} sonecas</span>
         </div>
-        <div style="font-size: 1.15rem; font-weight: 800; margin-top: 0.6rem;">
-          {{ store.napCount() }} de {{ store.expectedNaps() }} sonecas ({{ store.totalSleepMinutes() | duration }})
-        </div>
-        <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.25rem;">
-          Tempo médio acordada entre períodos de sono: {{ store.napTransition().averageRealWakeWindowMinutes | duration }}
+        <div style="font-size: 1.08rem; font-weight: 800; margin-top: 0.45rem;">
+          {{ store.napCount() }}/{{ store.expectedNaps() }} sonecas ({{ store.totalSleepMinutes() | duration }})
         </div>
       </div>
     </div>
-    <app-official-reference page="Caderneta da Criança — Menina (5ª ed.), p. 17: o sono; p. 18 e 21: troca de fraldas, fezes e desidratação; p. 24 e 31: amamentação e alimentação" />
   `
 })
 export class DailySummaryCardsComponent {

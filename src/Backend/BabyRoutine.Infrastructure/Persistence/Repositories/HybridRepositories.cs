@@ -335,26 +335,46 @@ public class BabyRepository(MongoDbContext db, InMemoryDataStore mem) : IBabyRep
     {
         if (string.IsNullOrWhiteSpace(ownerUserId)) return [];
 
+        List<Baby> list;
         if (db.IsMongoConnected && db.Babies != null)
         {
-            return await db.Babies.Find(b => b.OwnerUserId == ownerUserId).SortBy(b => b.CreatedAt).ToListAsync(ct);
+            list = await db.Babies.Find(b => b.OwnerUserId == ownerUserId).SortBy(b => b.CreatedAt).ToListAsync(ct);
         }
-        lock (mem.SyncRoot)
+        else
         {
-            return mem.Babies.Where(b => b.OwnerUserId == ownerUserId).OrderBy(b => b.CreatedAt).ToList();
+            lock (mem.SyncRoot)
+            {
+                list = mem.Babies.Where(b => b.OwnerUserId == ownerUserId).OrderBy(b => b.CreatedAt).ToList();
+            }
         }
+
+        foreach (var b in list)
+        {
+            SeedData.EnsureCadernetaDataPopulated(b);
+        }
+        return list;
     }
 
     public async Task<List<Baby>> GetAllAsync(CancellationToken ct = default)
     {
+        List<Baby> list;
         if (db.IsMongoConnected && db.Babies != null)
         {
-            return await db.Babies.Find(_ => true).ToListAsync(ct);
+            list = await db.Babies.Find(_ => true).ToListAsync(ct);
         }
-        lock (mem.SyncRoot)
+        else
         {
-            return mem.Babies.ToList();
+            lock (mem.SyncRoot)
+            {
+                list = mem.Babies.ToList();
+            }
         }
+
+        foreach (var b in list)
+        {
+            SeedData.EnsureCadernetaDataPopulated(b);
+        }
+        return list;
     }
 
     public async Task<Baby?> GetByIdAndUserAsync(string babyId, string ownerUserId, CancellationToken ct = default)
@@ -364,11 +384,17 @@ public class BabyRepository(MongoDbContext db, InMemoryDataStore mem) : IBabyRep
         if (db.IsMongoConnected && db.Babies != null)
         {
             var baby = await db.Babies.Find(b => b.Id == babyId && b.OwnerUserId == ownerUserId).FirstOrDefaultAsync(ct);
-            if (baby != null) return baby;
+            if (baby != null)
+            {
+                SeedData.EnsureCadernetaDataPopulated(baby);
+                return baby;
+            }
         }
         lock (mem.SyncRoot)
         {
-            return mem.Babies.FirstOrDefault(b => b.Id == babyId && b.OwnerUserId == ownerUserId);
+            var found = mem.Babies.FirstOrDefault(b => b.Id == babyId && b.OwnerUserId == ownerUserId);
+            if (found != null) SeedData.EnsureCadernetaDataPopulated(found);
+            return found;
         }
     }
 
@@ -377,11 +403,17 @@ public class BabyRepository(MongoDbContext db, InMemoryDataStore mem) : IBabyRep
         if (db.IsMongoConnected && db.Babies != null)
         {
             var baby = await db.Babies.Find(b => b.Id == id).FirstOrDefaultAsync(ct);
-            if (baby != null) return baby;
+            if (baby != null)
+            {
+                SeedData.EnsureCadernetaDataPopulated(baby);
+                return baby;
+            }
         }
         lock (mem.SyncRoot)
         {
-            return mem.Babies.FirstOrDefault(b => b.Id == id);
+            var found = mem.Babies.FirstOrDefault(b => b.Id == id);
+            if (found != null) SeedData.EnsureCadernetaDataPopulated(found);
+            return found;
         }
     }
 
@@ -469,6 +501,39 @@ public class RoutineEventRepository(MongoDbContext db, InMemoryDataStore mem) : 
             else mem.RoutineEvents.Add(routineEvent);
             mem.SaveChanges();
         }
+    }
+
+    public async Task<RoutineEvent?> GetByIdAsync(string ownerUserId, string babyId, string eventId, CancellationToken ct = default)
+    {
+        if (db.IsMongoConnected && db.RoutineEvents != null)
+        {
+            var found = await db.RoutineEvents.Find(e => e.Id == eventId && e.BabyId == babyId && e.OwnerUserId == ownerUserId).FirstOrDefaultAsync(ct);
+            if (found != null) return found;
+        }
+        lock (mem.SyncRoot)
+        {
+            return mem.RoutineEvents.FirstOrDefault(e => e.Id == eventId && e.BabyId == babyId && e.OwnerUserId == ownerUserId);
+        }
+    }
+
+    public async Task<bool> DeleteAsync(string ownerUserId, string babyId, string eventId, CancellationToken ct = default)
+    {
+        var deleted = false;
+        if (db.IsMongoConnected && db.RoutineEvents != null)
+        {
+            var res = await db.RoutineEvents.DeleteOneAsync(e => e.Id == eventId && e.BabyId == babyId && e.OwnerUserId == ownerUserId, ct);
+            deleted = res.DeletedCount > 0;
+        }
+        lock (mem.SyncRoot)
+        {
+            var removed = mem.RoutineEvents.RemoveAll(e => e.Id == eventId && e.BabyId == babyId && e.OwnerUserId == ownerUserId);
+            if (removed > 0)
+            {
+                deleted = true;
+                mem.SaveChanges();
+            }
+        }
+        return deleted;
     }
 
     public async Task<List<RoutineEvent>> GetByBabyAndDateRangeAsync(string ownerUserId, string babyId, DateTime startUtc, DateTime endUtc, CancellationToken ct = default)

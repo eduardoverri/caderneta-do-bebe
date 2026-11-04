@@ -1,12 +1,14 @@
 <!doctype html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="utf-8">
-  <title>Rotina do Bebê</title>
+  <title>Caderneta do Bebê — Passaporte da Cidadania (5ª Edição - MS)</title>
   <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="application-name" content="Rotina do Bebê">
-  <meta name="apple-mobile-web-app-title" content="Rotina do Bebê">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="application-name" content="Caderneta do Bebê">
+  <meta name="apple-mobile-web-app-title" content="Caderneta do Bebê">
   <meta name="theme-color" content="#FAF7F2">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -18,12 +20,14 @@
       const savedScheme = localStorage.getItem("color-scheme") || "light";
       document.querySelector('meta[name="color-scheme"]').content = savedScheme;
       document.querySelector('meta[name="theme-color"]').content = savedScheme === "dark" ? "#0A0B0E" : "#FAF7F2";
-    } catch (_) {}
+    } catch (_) { }
   </script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <link rel="manifest" href="manifest.webmanifest">
 </head>
+
 <body>
   <app-root></app-root>
 </body>
+
 </html>

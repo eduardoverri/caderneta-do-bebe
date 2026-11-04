@@ -14,11 +14,11 @@ import { PopupAlertService } from '../../core/services/popup-alert.service';
         <div style="text-align: center; margin-bottom: 1.75rem;">
           <img
             src="app-icon.png"
-            alt="Rotina do Bebê"
+            alt="Caderneta do Bebê"
             style="width: 72px; height: 72px; object-fit: contain; margin-bottom: 0.5rem;" />
-          <h1 style="font-size: 1.55rem; font-weight: 800;">Rotina do Bebê</h1>
+          <h1 style="font-size: 1.55rem; font-weight: 800;">Caderneta do Bebê — Passaporte da Cidadania</h1>
           <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.4rem;">
-            Autentique-se via <strong>Google SSO</strong>. Seus filhos e registros clínicos são protegidos por JWT e isolados na sua conta Google.
+            Autentique-se via <strong>Google SSO</strong>. Sua conta de usuário é criada automaticamente a partir da sua conta Google e todos os registros da <strong>Caderneta da Criança (5ª Edição — MS)</strong> e da rotina automatizada ficam isolados por usuário.
           </p>
         </div>
 

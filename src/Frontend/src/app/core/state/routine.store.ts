@@ -124,12 +124,18 @@ export interface MilestoneItem {
   id: string;
   babyId: string;
   milestoneCode: string;
+  cadernetaNumber?: number;
   title: string;
   description: string;
-  directionType: 'Cephalocaudal' | 'Proximodistal';
+  howToInvestigate?: string;
+  directionType: 'Cephalocaudal' | 'Proximodistal' | 'CadernetaOficial';
   expectedAgeMonths: number;
+  redFlagMonthLimit?: number;
   ageRangeLabel: string;
+  ageRangeGroup?: string;
   status: 'NotStarted' | 'InProgress' | 'Achieved';
+  officialCode?: 'P' | 'A' | 'NV';
+  monthlyChecks?: Record<string, string>;
   achievedAtDate?: string;
   actualAgeAtAchievementDays?: number;
   notes?: string;
@@ -150,7 +156,6 @@ export class RoutineStore {
       : '/api';
   readonly isBackendConnected = signal<boolean>(false);
 
-  // Estado da Timeline Diária (apenas dados reais existentes do Filho selecionado)
   readonly events = signal<RoutineEventModel[]>([]);
   readonly totalSleepMinutes = signal<number>(0);
   readonly napCount = signal<number>(0);
@@ -300,7 +305,7 @@ export class RoutineStore {
         );
       }
     } catch {
-      // Ignora silenciosamente caso offline; dados permanecem seguros no armazenamento local
+      // Ignora silenciosamente caso offline
     }
   }
 
@@ -384,7 +389,6 @@ export class RoutineStore {
       return;
     }
 
-    // Carrega imediatamente o backup local para evitar tela vazia
     const cachedEvents = this.getLocalEvents(babyId);
     const cachedTrials = this.getLocalAllergenTrials(babyId);
     const cachedMilestones = this.getLocalMilestones(babyId);
@@ -399,7 +403,8 @@ export class RoutineStore {
     }
 
     try {
-      const [timeline, wakeRes, transition, trials, milestonesRes] = await Promise.all([
+      const [babyFull, timeline, wakeRes, transition, trials, milestonesRes] = await Promise.all([
+        firstValueFrom(this.http.get<BabyModel>(`${this.apiBaseUrl}/babies/${babyId}`)),
         firstValueFrom(this.http.get<{
           totalSleepMinutes: number;
           napCount: number;
@@ -418,6 +423,10 @@ export class RoutineStore {
         firstValueFrom(this.http.get<AllergenTrialItem[]>(`${this.apiBaseUrl}/babies/${babyId}/feeding/allergen-trials`)),
         firstValueFrom(this.http.get<{ milestones: MilestoneItem[] }>(`${this.apiBaseUrl}/babies/${babyId}/milestones`))
       ]);
+
+      if (babyFull) {
+        this.babyStore.updateBabyInCurrentUser(babyFull);
+      }
 
       const mergedEvents = this.mergeEvents(timeline.events ?? [], cachedEvents);
       this.events.set(mergedEvents);
@@ -455,7 +464,7 @@ export class RoutineStore {
 
       if (notifyInfo) {
         this.popupAlert.info(
-          'Prontuário e linha do tempo sincronizados com sucesso.',
+          'Caderneta do Bebê e linha do tempo sincronizadas com sucesso.',
           'Dados Carregados'
         );
       }
@@ -756,12 +765,21 @@ export class RoutineStore {
     }
   }
 
-  async updateMilestoneStatus(milestoneCode: string, status: 'NotStarted' | 'InProgress' | 'Achieved', notes?: string): Promise<void> {
+  async updateMilestoneStatus(
+    milestoneCode: string,
+    status: 'NotStarted' | 'InProgress' | 'Achieved',
+    notes?: string,
+    officialCode?: 'P' | 'A' | 'NV'
+  ): Promise<void> {
     const babyId = this.babyStore.selectedBabyId();
     if (!babyId) return;
     try {
       await firstValueFrom(
-        this.http.put(`${this.apiBaseUrl}/babies/${babyId}/milestones/${milestoneCode}`, { status, notes })
+        this.http.put(`${this.apiBaseUrl}/babies/${babyId}/milestones/${milestoneCode}`, {
+          status,
+          notes,
+          officialCode
+        })
       );
       this.popupAlert.success(
         'Marco do desenvolvimento infantil atualizado com sucesso.',
@@ -776,12 +794,65 @@ export class RoutineStore {
     }
   }
 
+  async updateRoutineEvent(
+    eventId: string,
+    payload: {
+      category?: string;
+      timestamp?: string;
+      endTimestamp?: string;
+      durationMinutes?: number;
+      recordedByName?: string;
+      notes?: string;
+      details?: RoutineEventModel['details'];
+    }
+  ): Promise<void> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (!babyId) return;
+    try {
+      const updated = await firstValueFrom(
+        this.http.put<RoutineEventModel>(`${this.apiBaseUrl}/babies/${babyId}/events/${eventId}`, payload)
+      );
+      this.events.update(list => {
+        const next = list.map(e => (e.id === eventId ? updated : e));
+        this.saveLocalEvents(babyId, next);
+        return next;
+      });
+      this.popupAlert.success('Registro da rotina alterado com sucesso.', 'Registro Atualizado');
+      await this.refreshAllForBaby(babyId);
+    } catch {
+      this.popupAlert.error('Não foi possível alterar o registro da rotina.', 'Erro ao Alterar');
+    }
+  }
+
+  async deleteRoutineEvent(eventId: string): Promise<void> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (!babyId) return;
+    try {
+      await firstValueFrom(this.http.delete(`${this.apiBaseUrl}/babies/${babyId}/events/${eventId}`));
+      this.events.update(list => {
+        const next = list.filter(e => e.id !== eventId);
+        this.saveLocalEvents(babyId, next);
+        return next;
+      });
+      this.popupAlert.info('Registro da rotina excluído com sucesso.', 'Registro Excluído');
+      await this.refreshAllForBaby(babyId);
+    } catch {
+      this.popupAlert.error('Não foi possível excluir o registro.', 'Erro ao Excluir');
+    }
+  }
+
   async logGrowthMeasurement(payload: {
     measuredAt?: string;
     weightGrams: number;
     heightCm: number;
     headCircumferenceCm: number;
     zScoreWeightForAge?: number;
+    measuredPosition?: string;
+    correctedGestationalWeeks?: number;
+    bloodPressureSystolic?: number;
+    bloodPressureDiastolic?: number;
+    bloodPressureObservations?: string;
+    notes?: string;
   }): Promise<void> {
     const babyId = this.babyStore.selectedBabyId();
     if (!babyId) return;
@@ -791,7 +862,7 @@ export class RoutineStore {
       );
       this.babyStore.updateBabyInCurrentUser(updatedBaby);
       this.popupAlert.success(
-        'Aferição antropométrica e registro nos gráficos de crescimento (OMS) salvos com sucesso.',
+        'Aferição antropométrica e registro nos gráficos de crescimento (OMS/MS) salvos com sucesso.',
         'Vigilância do Crescimento Registrada'
       );
     } catch {
@@ -800,6 +871,240 @@ export class RoutineStore {
         'Sem conexão com o servidor. Aferição antropométrica enfileirada para sincronização.',
         'Modo Offline • Antropometria Enfileirada'
       );
+    }
+  }
+
+  async updateGrowthMeasurement(
+    growthId: string,
+    payload: {
+      measuredAt?: string;
+      weightGrams: number;
+      heightCm: number;
+      headCircumferenceCm: number;
+      zScoreWeightForAge?: number;
+      measuredPosition?: string;
+      correctedGestationalWeeks?: number;
+      bloodPressureSystolic?: number;
+      bloodPressureDiastolic?: number;
+      bloodPressureObservations?: string;
+      notes?: string;
+    }
+  ): Promise<void> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (!babyId) return;
+    try {
+      const updatedBaby = await firstValueFrom(
+        this.http.put<BabyModel>(`${this.apiBaseUrl}/babies/${babyId}/growth/${growthId}`, payload)
+      );
+      this.babyStore.updateBabyInCurrentUser(updatedBaby);
+      this.popupAlert.success('Medida antropométrica alterada com sucesso.', 'Medida Atualizada');
+    } catch {
+      this.popupAlert.error('Erro ao alterar medida antropométrica.', 'Erro ao Alterar');
+    }
+  }
+
+  async deleteGrowthMeasurement(growthId: string): Promise<void> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (!babyId) return;
+    try {
+      const updatedBaby = await firstValueFrom(
+        this.http.delete<BabyModel>(`${this.apiBaseUrl}/babies/${babyId}/growth/${growthId}`)
+      );
+      this.babyStore.updateBabyInCurrentUser(updatedBaby);
+      this.popupAlert.info('Medida antropométrica removida com sucesso.', 'Medida Excluída');
+    } catch {
+      this.popupAlert.error('Erro ao excluir medida antropométrica.', 'Erro ao Excluir');
+    }
+  }
+
+  async updateIdentificationAndSocial(payload: Record<string, unknown>): Promise<BabyModel | null> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (!babyId) return null;
+    try {
+      const updated = await firstValueFrom(
+        this.http.put<BabyModel>(`${this.apiBaseUrl}/babies/${babyId}/identification`, payload)
+      );
+      this.babyStore.updateBabyInCurrentUser(updated);
+      this.popupAlert.success('Identificação, endereço, assistência social e educação salvos na Caderneta.', 'Caderneta Salva (p. 4 a 9)');
+      return updated;
+    } catch {
+      this.popupAlert.error('Erro ao salvar dados de identificação da Caderneta.', 'Erro ao Salvar');
+      return null;
+    }
+  }
+
+  async updatePrenatalAndScreenings(payload: Record<string, unknown>): Promise<BabyModel | null> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (!babyId) return null;
+    try {
+      const updated = await firstValueFrom(
+        this.http.put<BabyModel>(`${this.apiBaseUrl}/babies/${babyId}/prenatal-birth`, payload)
+      );
+      this.babyStore.updateBabyInCurrentUser(updated);
+      this.popupAlert.success('Dados de Pré-Natal, Parto, Nascimento, Alta e Triagens Neonatais salvos.', 'Caderneta Salva (p. 69 a 71)');
+      return updated;
+    } catch {
+      this.popupAlert.error('Erro ao salvar dados perinatais e triagens.', 'Erro ao Salvar');
+      return null;
+    }
+  }
+
+  async updateConsultation(code: string, consultation: unknown): Promise<BabyModel | null> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (!babyId) return null;
+    try {
+      const updated = await firstValueFrom(
+        this.http.put<BabyModel>(`${this.apiBaseUrl}/babies/${babyId}/consultations/${code}`, consultation)
+      );
+      this.babyStore.updateBabyInCurrentUser(updated);
+      this.popupAlert.success('Registro da consulta recomendada atualizado na Caderneta.', 'Consulta Salva (p. 70 a 76)');
+      return updated;
+    } catch {
+      this.popupAlert.error('Erro ao salvar a consulta recomendada.', 'Erro ao Salvar');
+      return null;
+    }
+  }
+
+  async updateDevelopmentSurveillance(surveillance: unknown): Promise<unknown> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (!babyId) return null;
+    try {
+      const res = await firstValueFrom(
+        this.http.put<{ baby: BabyModel; integralEvaluation: unknown; mchatEvaluation: unknown }>(
+          `${this.apiBaseUrl}/babies/${babyId}/development-surveillance`,
+          surveillance
+        )
+      );
+      if (res?.baby) {
+        this.babyStore.updateBabyInCurrentUser(res.baby);
+      }
+      this.popupAlert.success('Vigilância do Desenvolvimento e M-CHAT-R/F™ atualizados.', 'Desenvolvimento Salvo (p. 78 a 87)');
+      return res;
+    } catch {
+      this.popupAlert.error('Erro ao salvar Vigilância do Desenvolvimento.', 'Erro ao Salvar');
+      return null;
+    }
+  }
+
+  async updateDental(dental: unknown): Promise<BabyModel | null> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (!babyId) return null;
+    try {
+      const updated = await firstValueFrom(
+        this.http.put<BabyModel>(`${this.apiBaseUrl}/babies/${babyId}/dental`, dental)
+      );
+      this.babyStore.updateBabyInCurrentUser(updated);
+      this.popupAlert.success('Odontograma e consultas odontológicas atualizados.', 'Saúde Bucal Salva (p. 101 e 102)');
+      return updated;
+    } catch {
+      this.popupAlert.error('Erro ao salvar dados odontológicos.', 'Erro ao Salvar');
+      return null;
+    }
+  }
+
+  async updateSupplementation(supplementation: unknown): Promise<BabyModel | null> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (!babyId) return null;
+    try {
+      const updated = await firstValueFrom(
+        this.http.put<BabyModel>(`${this.apiBaseUrl}/babies/${babyId}/supplementation`, supplementation)
+      );
+      this.babyStore.updateBabyInCurrentUser(updated);
+      this.popupAlert.success('Suplementação de Vitamina A e Ferro/Micronutrientes atualizada.', 'Suplementação Salva (p. 103)');
+      return updated;
+    } catch {
+      this.popupAlert.error('Erro ao salvar suplementação.', 'Erro ao Salvar');
+      return null;
+    }
+  }
+
+  async updateNationalVaccine(
+    vaccineCode: string,
+    payload: {
+      status: 'Pending' | 'Applied' | 'Overdue';
+      appliedAt?: string;
+      lot?: string;
+      laboratory?: string;
+      healthUnit?: string;
+      signature?: string;
+    }
+  ): Promise<BabyModel | null> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (!babyId) return null;
+    try {
+      const updated = await firstValueFrom(
+        this.http.put<BabyModel>(`${this.apiBaseUrl}/babies/${babyId}/vaccines/${vaccineCode}`, payload)
+      );
+      this.babyStore.updateBabyInCurrentUser(updated);
+      this.popupAlert.success('Registro de vacina do Calendário Nacional atualizado.', 'Vacina Salva (p. 104 e 105)');
+      return updated;
+    } catch {
+      this.popupAlert.error('Erro ao atualizar vacina.', 'Erro ao Salvar');
+      return null;
+    }
+  }
+
+  async upsertCampaignVaccine(record: unknown): Promise<BabyModel | null> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (!babyId) return null;
+    try {
+      const updated = await firstValueFrom(
+        this.http.post<BabyModel>(`${this.apiBaseUrl}/babies/${babyId}/campaign-vaccines`, record)
+      );
+      this.babyStore.updateBabyInCurrentUser(updated);
+      this.popupAlert.success('Vacina de campanha / outra vacina registrada.', 'Vacina de Campanha Salva (p. 106)');
+      return updated;
+    } catch {
+      this.popupAlert.error('Erro ao salvar vacina de campanha.', 'Erro ao Salvar');
+      return null;
+    }
+  }
+
+  async deleteCampaignVaccine(campaignId: string): Promise<BabyModel | null> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (!babyId) return null;
+    try {
+      const updated = await firstValueFrom(
+        this.http.delete<BabyModel>(`${this.apiBaseUrl}/babies/${babyId}/campaign-vaccines/${campaignId}`)
+      );
+      this.babyStore.updateBabyInCurrentUser(updated);
+      this.popupAlert.info('Registro de vacina de campanha removido.', 'Vacina Removida');
+      return updated;
+    } catch {
+      this.popupAlert.error('Erro ao remover vacina de campanha.', 'Erro ao Excluir');
+      return null;
+    }
+  }
+
+  async updateNotesAndAgenda(payload: { generalNotes?: unknown[]; appointmentsAgenda?: unknown[] }): Promise<BabyModel | null> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (!babyId) return null;
+    try {
+      const updated = await firstValueFrom(
+        this.http.put<BabyModel>(`${this.apiBaseUrl}/babies/${babyId}/notes-agenda`, payload)
+      );
+      this.babyStore.updateBabyInCurrentUser(updated);
+      this.popupAlert.success('Anotações Gerais e Agenda da Caderneta atualizadas.', 'Agenda e Anotações Salvas (p. 107 e 108)');
+      return updated;
+    } catch {
+      this.popupAlert.error('Erro ao salvar anotações e agenda.', 'Erro ao Salvar');
+      return null;
+    }
+  }
+
+  async updateBabyFull(payload: Record<string, unknown>): Promise<BabyModel | null> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (!babyId) return null;
+    try {
+      const updated = await firstValueFrom(
+        this.http.put<BabyModel>(`${this.apiBaseUrl}/babies/${babyId}`, payload)
+      );
+      this.babyStore.updateBabyInCurrentUser(updated);
+      this.popupAlert.success('Dados da criança atualizados com sucesso.', 'Caderneta Atualizada');
+      return updated;
+    } catch {
+      this.popupAlert.error('Erro ao atualizar dados da criança.', 'Erro ao Salvar');
+      return null;
     }
   }
 
@@ -925,7 +1230,6 @@ export class RoutineStore {
       if (!existing) {
         map.set(m.milestoneCode, m);
       } else {
-        // Prioriza o status mais avançado caso o servidor tenha acabado de reiniciar com NotStarted
         const rank = (s: string) => (s === 'Achieved' ? 2 : s === 'InProgress' ? 1 : 0);
         map.set(m.milestoneCode, rank(m.status) >= rank(existing.status) ? m : existing);
       }

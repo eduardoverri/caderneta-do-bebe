@@ -11,8 +11,9 @@ public record AdministerMedicationDto(
 
 public record ToggleMilestoneDto(
     string Status, // NotStarted, InProgress, Achieved
-    string? Notes,
-    string? MediaPhotoUrl
+    string? Notes = null,
+    string? MediaPhotoUrl = null,
+    string? OfficialCode = null // P, A, NV
 );
 
 public record RecordGrowthLogDto(
@@ -20,6 +21,11 @@ public record RecordGrowthLogDto(
     double WeightGrams,
     double HeightCm,
     double HeadCircumferenceCm,
-    double? ZScoreWeightForAge
+    double? ZScoreWeightForAge = null,
+    string? MeasuredPosition = null,
+    int? CorrectedGestationalWeeks = null,
+    int? BloodPressureSystolic = null,
+    int? BloodPressureDiastolic = null,
+    string? BloodPressureObservations = null,
+    string? Notes = null
 );
-

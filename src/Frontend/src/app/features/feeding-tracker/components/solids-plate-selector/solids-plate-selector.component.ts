@@ -12,55 +12,52 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
     <div class="card" style="border-top: 4px solid var(--cat-feeding);">
       <h3 class="section-title">
         <span aria-hidden="true">🍲</span>
-        <span>Esquema Alimentar e Grupos de Alimentos (Crianças até 2 Anos — pág. 31 a 34)</span>
+        <span>Registrar Refeição Sólida (4 Grupos Alimentares)</span>
       </h3>
-      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
-        Aos 6 meses a criança já pode receber outros alimentos in natura ou minimamente processados além do leite materno (mantido até os 2 anos ou mais). No almoço e no jantar: 1 alimento do grupo dos cereais ou raízes e tubérculos; 1 do grupo dos feijões; 1 ou mais do grupo dos legumes e verduras; e 1 do grupo das carnes e ovos, podendo ser dado junto um pedaço pequeno de fruta. Não ofereça açúcar nem alimentos ultraprocessados à criança de até 2 anos.
-      </p>
 
-      <div class="grid-3" style="margin-bottom: 1rem;">
+      <div class="grid-3" style="margin-bottom: 0.85rem;">
         <div>
-          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Refeição (Quadro 1 — pág. 31)</label>
+          <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Refeição</label>
           <select class="input-field" [(ngModel)]="mealType">
-            <option value="Breakfast">Café da manhã (Leite materno; 1–2 anos: fruta ou cereal ou raízes/tubérculos)</option>
-            <option value="MorningSnack">Lanche da manhã (Fruta e leite materno)</option>
-            <option value="Lunch">Almoço (Cereais/Tubérculos + Feijões + Legumes/Verduras + Carnes/Ovos + Fruta)</option>
-            <option value="AfternoonSnack">Lanche da tarde (Fruta e leite materno; 1–2 anos: ou cereal/tubérculos)</option>
-            <option value="Dinner">Jantar (Aos 6m: leite materno; a partir de 7m: igual ao almoço)</option>
+            <option value="Breakfast">Café da manhã</option>
+            <option value="MorningSnack">Lanche da manhã (Fruta)</option>
+            <option value="Lunch">Almoço (4 Grupos)</option>
+            <option value="AfternoonSnack">Lanche da tarde (Fruta)</option>
+            <option value="Dinner">Jantar (4 Grupos)</option>
           </select>
         </div>
 
         <div>
-          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Aceitação (pág. 33)</label>
+          <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Aceitação</label>
           <select class="input-field" [(ngModel)]="acceptanceLevel">
-            <option value="High">Alta (Aceitou bem a refeição)</option>
-            <option value="Medium">Média (Atenção aos sinais de fome e saciedade — Passo 9)</option>
-            <option value="Low">Baixa (Variar a forma de preparo ajuda a aceitação — pág. 33)</option>
-            <option value="Refused">Recusa (Oferecer novamente; podem ser necessárias 8 a 10 tentativas — pág. 33)</option>
+            <option value="High">Alta (Aceitou bem)</option>
+            <option value="Medium">Média</option>
+            <option value="Low">Baixa</option>
+            <option value="Refused">Recusou (Reoferecer em 8–10 tentativas)</option>
           </select>
         </div>
 
         <div>
-          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Consistência e Forma de Oferta (pág. 33 e 34)</label>
+          <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.2rem;">Consistência / Forma</label>
           <select class="input-field" [(ngModel)]="eatingAutonomy">
-            <option value="PureeSpoon">Comida amassada com garfo / Incentivo ao uso de talheres (Passo 4 — pág. 33 e 34)</option>
-            <option value="BLW_Assisted">Comer alguns alimentos com as mãos + incentivo aos talheres (pág. 33)</option>
-            <option value="FamilyTable">Mesma comida da família e refeições juntas à mesa sem TV/celular (Passo 7 e 8 — pág. 33 e 34)</option>
+            <option value="PureeSpoon">Amassada com garfo / colher</option>
+            <option value="BLW_Assisted">Em pedaços com as mãos + talheres</option>
+            <option value="FamilyTable">Mesma comida da família à mesa</option>
           </select>
         </div>
       </div>
 
-      <!-- Os 4 Grupos Principais do Almoço/Jantar (Quadro 1 e Quadro 2 — pág. 31 e 32) -->
-      <div class="grid-2" style="margin-bottom: 1rem;">
-        <!-- Grupo 1: Grupo dos legumes e verduras + Grupo das frutas -->
+      <!-- Os 4 Grupos Principais do Almoço/Jantar -->
+      <div class="grid-2" style="margin-bottom: 0.85rem;">
+        <!-- Grupo 1 -->
         <div class="card-elevated">
-          <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem;">🥦 1. Grupo dos Legumes e Verduras / Grupo das Frutas</div>
-          <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+          <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 0.35rem;">🥦 1. Legumes, Verduras e Frutas</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
             @for (item of vegOptions; track item) {
               <button
                 type="button"
                 class="btn"
-                style="padding: 0.35rem 0.65rem; min-height: 34px; font-size: 0.82rem;"
+                style="padding: 0.25rem 0.55rem; min-height: 32px; font-size: 0.78rem;"
                 [class.btn-diaper]="selectedVeg().includes(item)"
                 (click)="toggleItem(selectedVeg, vegOtherActive, item)">
                 {{ item }}
@@ -69,7 +66,7 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
             <button
               type="button"
               class="btn"
-              style="padding: 0.35rem 0.65rem; min-height: 34px; font-size: 0.82rem;"
+              style="padding: 0.25rem 0.55rem; min-height: 32px; font-size: 0.78rem;"
               [class.btn-diaper]="vegOtherActive()"
               (click)="toggleOther(selectedVeg, vegOtherActive)">
               Outros
@@ -77,7 +74,7 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
             <button
               type="button"
               class="btn"
-              style="padding: 0.35rem 0.65rem; min-height: 34px; font-size: 0.82rem;"
+              style="padding: 0.25rem 0.55rem; min-height: 32px; font-size: 0.78rem;"
               [class.btn-sleep]="selectedVeg().includes('Nenhum')"
               (click)="selectNone(selectedVeg, vegOtherActive, vegOtherText)">
               Nenhum
@@ -87,22 +84,22 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
             <input
               type="text"
               class="input-field"
-              style="margin-top: 0.55rem;"
+              style="margin-top: 0.45rem;"
               [ngModel]="vegOtherText()"
               (ngModelChange)="vegOtherText.set($event)"
-              placeholder="Ex.: beterraba, couve, mamão, banana, laranja, maçã..." />
+              placeholder="Ex.: beterraba, couve, maçã..." />
           }
         </div>
 
-        <!-- Grupo 2: Grupo dos cereais + Grupo das raízes e tubérculos -->
+        <!-- Grupo 2 -->
         <div class="card-elevated">
-          <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem;">🥔 2. Grupo dos Cereais ou Raízes e Tubérculos</div>
-          <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+          <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 0.35rem;">🥔 2. Cereais, Raízes e Tubérculos</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
             @for (item of cerealOptions; track item) {
               <button
                 type="button"
                 class="btn"
-                style="padding: 0.35rem 0.65rem; min-height: 34px; font-size: 0.82rem;"
+                style="padding: 0.25rem 0.55rem; min-height: 32px; font-size: 0.78rem;"
                 [class.btn-milestone]="selectedCereals().includes(item)"
                 (click)="toggleItem(selectedCereals, cerealOtherActive, item)">
                 {{ item }}
@@ -111,7 +108,7 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
             <button
               type="button"
               class="btn"
-              style="padding: 0.35rem 0.65rem; min-height: 34px; font-size: 0.82rem;"
+              style="padding: 0.25rem 0.55rem; min-height: 32px; font-size: 0.78rem;"
               [class.btn-milestone]="cerealOtherActive()"
               (click)="toggleOther(selectedCereals, cerealOtherActive)">
               Outros
@@ -119,7 +116,7 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
             <button
               type="button"
               class="btn"
-              style="padding: 0.35rem 0.65rem; min-height: 34px; font-size: 0.82rem;"
+              style="padding: 0.25rem 0.55rem; min-height: 32px; font-size: 0.78rem;"
               [class.btn-sleep]="selectedCereals().includes('Nenhum')"
               (click)="selectNone(selectedCereals, cerealOtherActive, cerealOtherText)">
               Nenhum
@@ -129,22 +126,22 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
             <input
               type="text"
               class="input-field"
-              style="margin-top: 0.55rem;"
+              style="margin-top: 0.45rem;"
               [ngModel]="cerealOtherText()"
               (ngModelChange)="cerealOtherText.set($event)"
-              placeholder="Ex.: batata-baroa (mandioquinha), cará, macarrão, cuscuz..." />
+              placeholder="Ex.: mandioquinha, macarrão..." />
           }
         </div>
 
-        <!-- Grupo 3: Grupo dos feijões (leguminosas) -->
+        <!-- Grupo 3 -->
         <div class="card-elevated">
-          <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem;">🫘 3. Grupo dos Feijões (Leguminosas)</div>
-          <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+          <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 0.35rem;">🫘 3. Feijões (Leguminosas)</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
             @for (item of legumeOptions; track item) {
               <button
                 type="button"
                 class="btn"
-                style="padding: 0.35rem 0.65rem; min-height: 34px; font-size: 0.82rem;"
+                style="padding: 0.25rem 0.55rem; min-height: 32px; font-size: 0.78rem;"
                 [class.btn-feeding]="selectedLegumes().includes(item)"
                 (click)="toggleItem(selectedLegumes, legumeOtherActive, item)">
                 {{ item }}
@@ -153,7 +150,7 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
             <button
               type="button"
               class="btn"
-              style="padding: 0.35rem 0.65rem; min-height: 34px; font-size: 0.82rem;"
+              style="padding: 0.25rem 0.55rem; min-height: 32px; font-size: 0.78rem;"
               [class.btn-feeding]="legumeOtherActive()"
               (click)="toggleOther(selectedLegumes, legumeOtherActive)">
               Outros
@@ -161,7 +158,7 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
             <button
               type="button"
               class="btn"
-              style="padding: 0.35rem 0.65rem; min-height: 34px; font-size: 0.82rem;"
+              style="padding: 0.25rem 0.55rem; min-height: 32px; font-size: 0.78rem;"
               [class.btn-sleep]="selectedLegumes().includes('Nenhum')"
               (click)="selectNone(selectedLegumes, legumeOtherActive, legumeOtherText)">
               Nenhum
@@ -171,22 +168,22 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
             <input
               type="text"
               class="input-field"
-              style="margin-top: 0.55rem;"
+              style="margin-top: 0.45rem;"
               [ngModel]="legumeOtherText()"
               (ngModelChange)="legumeOtherText.set($event)"
-              placeholder="Ex.: feijão-preto, feijão-de-corda, soja..." />
+              placeholder="Ex.: feijão-preto, soja..." />
           }
         </div>
 
-        <!-- Grupo 4: Grupo das carnes e ovos -->
+        <!-- Grupo 4 -->
         <div class="card-elevated">
-          <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem;">🥩 4. Grupo das Carnes e Ovos</div>
-          <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+          <div style="font-weight: 700; font-size: 0.85rem; margin-bottom: 0.35rem;">🥩 4. Carnes e Ovos</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
             @for (item of proteinOptions; track item) {
               <button
                 type="button"
                 class="btn"
-                style="padding: 0.35rem 0.65rem; min-height: 34px; font-size: 0.82rem;"
+                style="padding: 0.25rem 0.55rem; min-height: 32px; font-size: 0.78rem;"
                 [class.btn-health]="selectedProteins().includes(item)"
                 (click)="toggleItem(selectedProteins, proteinOtherActive, item)">
                 {{ item }}
@@ -195,7 +192,7 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
             <button
               type="button"
               class="btn"
-              style="padding: 0.35rem 0.65rem; min-height: 34px; font-size: 0.82rem;"
+              style="padding: 0.25rem 0.55rem; min-height: 32px; font-size: 0.78rem;"
               [class.btn-health]="proteinOtherActive()"
               (click)="toggleOther(selectedProteins, proteinOtherActive)">
               Outros
@@ -203,7 +200,7 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
             <button
               type="button"
               class="btn"
-              style="padding: 0.35rem 0.65rem; min-height: 34px; font-size: 0.82rem;"
+              style="padding: 0.25rem 0.55rem; min-height: 32px; font-size: 0.78rem;"
               [class.btn-sleep]="selectedProteins().includes('Nenhum')"
               (click)="selectNone(selectedProteins, proteinOtherActive, proteinOtherText)">
               Nenhum
@@ -213,28 +210,31 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
             <input
               type="text"
               class="input-field"
-              style="margin-top: 0.55rem;"
+              style="margin-top: 0.45rem;"
               [ngModel]="proteinOtherText()"
               (ngModelChange)="proteinOtherText.set($event)"
-              placeholder="Ex.: carne suína, cabrito, cordeiro, miúdos/moela..." />
+              placeholder="Ex.: carne suína, miúdos..." />
           }
         </div>
       </div>
 
-      <div class="card-elevated" style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem;">
-        <strong>Quantidade aproximada no almoço/jantar (Quadro 1 — pág. 31):</strong>
-        Aos 6 meses: 2 a 3 colheres de sopa no total (jantar aos 6m: leite materno) •
-        Entre 7 e 8 meses: 3 a 4 colheres de sopa no total •
-        Entre 9 e 12 meses: 4 a 5 colheres de sopa no total •
-        Entre 1 e 2 anos: 5 a 6 colheres de sopa no total.
-      </div>
-
       <button type="button" class="btn btn-feeding" style="width: 100%;" (click)="savePlate()">
         <span aria-hidden="true">🍽️</span>
-        <span>Registrar Refeição da Criança</span>
+        <span>Salvar Refeição da Criança</span>
       </button>
 
-      <app-official-reference page="Caderneta da Criança, p. 31: Quadro 1 – Esquema alimentar para crianças até 2 anos; p. 32: Quadro 2 – Grupos de alimentos; p. 33 e 34: Doze Passos" />
+      <details class="info-disclosure">
+        <summary>💡 Esquema Alimentar e Quantidades por Idade (Quadro 1 — pág. 31 a 34)</summary>
+        <div class="info-disclosure-body">
+          <ul>
+            <li><strong>6 meses:</strong> 2 a 3 colheres de sopa no almoço (jantar aos 6m ainda é leite materno).</li>
+            <li><strong>7 a 8 meses:</strong> 3 a 4 colheres de sopa no almoço e no jantar.</li>
+            <li><strong>9 a 12 meses:</strong> 4 a 5 colheres de sopa • <strong>1 a 2 anos:</strong> 5 a 6 colheres de sopa.</li>
+            <li>Zero açúcar e zero ultraprocessados antes dos 2 anos de idade.</li>
+          </ul>
+          <app-official-reference page="p. 31 a 34" />
+        </div>
+      </details>
     </div>
   `
 })
@@ -246,10 +246,10 @@ export class SolidsPlateSelectorComponent {
   acceptanceLevel = 'High';
   eatingAutonomy = 'PureeSpoon';
 
-  readonly vegOptions = ['Abóbora (jerimum)', 'Brócolis', 'Cenoura', 'Abobrinha', 'Espinafre', 'Chuchu', 'Banana', 'Mamão'];
-  readonly cerealOptions = ['Arroz', 'Batata-doce', 'Mandioca (aipim/macaxeira)', 'Inhame', 'Aveia', 'Milho / Fubá'];
+  readonly vegOptions = ['Abóbora', 'Brócolis', 'Cenoura', 'Abobrinha', 'Espinafre', 'Chuchu', 'Banana', 'Mamão'];
+  readonly cerealOptions = ['Arroz', 'Batata-doce', 'Mandioca', 'Inhame', 'Aveia', 'Milho / Fubá'];
   readonly legumeOptions = ['Feijão carioca', 'Lentilha', 'Grão-de-bico', 'Ervilha'];
-  readonly proteinOptions = ['Carne de boi', 'Aves (Frango)', 'Ovos de galinha', 'Pescados (Peixe)', 'Vísceras / Fígado'];
+  readonly proteinOptions = ['Carne de boi', 'Frango', 'Ovos', 'Peixe', 'Fígado'];
 
   readonly selectedVeg = signal<string[]>([]);
   readonly selectedCereals = signal<string[]>([]);

@@ -26,6 +26,8 @@ public interface IRoutineEventRepository
 {
     Task<RoutineEvent> InsertAsync(RoutineEvent routineEvent, CancellationToken ct = default);
     Task UpsertAsync(RoutineEvent routineEvent, CancellationToken ct = default);
+    Task<RoutineEvent?> GetByIdAsync(string ownerUserId, string babyId, string eventId, CancellationToken ct = default);
+    Task<bool> DeleteAsync(string ownerUserId, string babyId, string eventId, CancellationToken ct = default);
     Task<List<RoutineEvent>> GetByBabyAndDateRangeAsync(string ownerUserId, string babyId, DateTime startUtc, DateTime endUtc, CancellationToken ct = default);
     Task<List<RoutineEvent>> GetRecentByBabyAsync(string ownerUserId, string babyId, int limit = 50, CancellationToken ct = default);
     Task<RoutineEvent?> GetLastEventByCategoryAsync(string ownerUserId, string babyId, string category, CancellationToken ct = default);
