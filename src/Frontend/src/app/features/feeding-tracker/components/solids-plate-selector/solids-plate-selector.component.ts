@@ -2,58 +2,59 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RoutineStore } from '../../../../core/state/routine.store';
 import { PopupAlertService } from '../../../../core/services/popup-alert.service';
+import { OfficialReferenceComponent } from '../../../../shared/components/official-reference/official-reference.component';
 
 @Component({
   selector: 'app-solids-plate-selector',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, OfficialReferenceComponent],
   template: `
     <div class="card" style="border-top: 4px solid var(--cat-feeding);">
       <h3 class="section-title">
         <span aria-hidden="true">🍲</span>
-        <span>Prato Balanceado dos 4 Grupos & Rotina Familiar (6 a 24 Meses)</span>
+        <span>Esquema Alimentar e Grupos de Alimentos (Crianças até 2 Anos — pág. 31 a 34)</span>
       </h3>
       <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
-        Seção 2.2 e 2.3: Garante densidade de ferro heme, zinco e calorias (sem sal excessivo e zero açúcar até 2 anos).
+        Aos 6 meses a criança já pode receber outros alimentos in natura ou minimamente processados além do leite materno (mantido até os 2 anos ou mais). No almoço e no jantar: 1 alimento do grupo dos cereais ou raízes e tubérculos; 1 do grupo dos feijões; 1 ou mais do grupo dos legumes e verduras; e 1 do grupo das carnes e ovos, podendo ser dado junto um pedaço pequeno de fruta. Não ofereça açúcar nem alimentos ultraprocessados à criança de até 2 anos.
       </p>
 
       <div class="grid-3" style="margin-bottom: 1rem;">
         <div>
-          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Refeição</label>
+          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Refeição (Quadro 1 — pág. 31)</label>
           <select class="input-field" [(ngModel)]="mealType">
-            <option value="Breakfast">Café da Manhã</option>
-            <option value="MorningSnack">Lanche Matutino (Fruta)</option>
-            <option value="Lunch">Almoço (Prato 4 Grupos)</option>
-            <option value="AfternoonSnack">Lanche Vespertino</option>
-            <option value="Dinner">Jantar (Prato 4 Grupos)</option>
+            <option value="Breakfast">Café da manhã (Leite materno; 1–2 anos: fruta ou cereal ou raízes/tubérculos)</option>
+            <option value="MorningSnack">Lanche da manhã (Fruta e leite materno)</option>
+            <option value="Lunch">Almoço (Cereais/Tubérculos + Feijões + Legumes/Verduras + Carnes/Ovos + Fruta)</option>
+            <option value="AfternoonSnack">Lanche da tarde (Fruta e leite materno; 1–2 anos: ou cereal/tubérculos)</option>
+            <option value="Dinner">Jantar (Aos 6m: leite materno; a partir de 7m: igual ao almoço)</option>
           </select>
         </div>
 
         <div>
-          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Nível de Aceitação</label>
+          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Aceitação (pág. 33)</label>
           <select class="input-field" [(ngModel)]="acceptanceLevel">
-            <option value="High">Alta (Comeu com entusiasmo)</option>
-            <option value="Medium">Média (Autorregulação moderada)</option>
-            <option value="Low">Baixa (Oscilação fisiológica / Dentição)</option>
-            <option value="Refused">Recusa (Não substituir por leite/ultraprocessados)</option>
+            <option value="High">Alta (Aceitou bem a refeição)</option>
+            <option value="Medium">Média (Atenção aos sinais de fome e saciedade — Passo 9)</option>
+            <option value="Low">Baixa (Variar a forma de preparo ajuda a aceitação — pág. 33)</option>
+            <option value="Refused">Recusa (Oferecer novamente; podem ser necessárias 8 a 10 tentativas — pág. 33)</option>
           </select>
         </div>
 
         <div>
-          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Método / Autonomia</label>
+          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Consistência e Forma de Oferta (pág. 33 e 34)</label>
           <select class="input-field" [(ngModel)]="eatingAutonomy">
-            <option value="BLW_Assisted">Participativa / BLW Assistido</option>
-            <option value="PureeSpoon">Amassado no garfo / Colher</option>
-            <option value="FamilyTable">Mesa da Família (12–24m)</option>
+            <option value="PureeSpoon">Comida amassada com garfo / Incentivo ao uso de talheres (Passo 4 — pág. 33 e 34)</option>
+            <option value="BLW_Assisted">Comer alguns alimentos com as mãos + incentivo aos talheres (pág. 33)</option>
+            <option value="FamilyTable">Mesma comida da família e refeições juntas à mesa sem TV/celular (Passo 7 e 8 — pág. 33 e 34)</option>
           </select>
         </div>
       </div>
 
-      <!-- Os 4 Quadrantes do Prato Balanceado -->
+      <!-- Os 4 Grupos Principais do Almoço/Jantar (Quadro 1 e Quadro 2 — pág. 31 e 32) -->
       <div class="grid-2" style="margin-bottom: 1rem;">
-        <!-- Grupo 1: Frutas, Hortaliças e Verduras -->
+        <!-- Grupo 1: Grupo dos legumes e verduras + Grupo das frutas -->
         <div class="card-elevated">
-          <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem;">🥦 1. Frutas, Hortaliças e Verduras</div>
+          <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem;">🥦 1. Grupo dos Legumes e Verduras / Grupo das Frutas</div>
           <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
             @for (item of vegOptions; track item) {
               <button
@@ -89,13 +90,13 @@ import { PopupAlertService } from '../../../../core/services/popup-alert.service
               style="margin-top: 0.55rem;"
               [ngModel]="vegOtherText()"
               (ngModelChange)="vegOtherText.set($event)"
-              placeholder="Descreva outros vegetais ou frutas..." />
+              placeholder="Ex.: beterraba, couve, mamão, banana, laranja, maçã..." />
           }
         </div>
 
-        <!-- Grupo 2: Cereais e Tubérculos -->
+        <!-- Grupo 2: Grupo dos cereais + Grupo das raízes e tubérculos -->
         <div class="card-elevated">
-          <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem;">🥔 2. Cereais e Tubérculos (Energéticos)</div>
+          <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem;">🥔 2. Grupo dos Cereais ou Raízes e Tubérculos</div>
           <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
             @for (item of cerealOptions; track item) {
               <button
@@ -131,13 +132,13 @@ import { PopupAlertService } from '../../../../core/services/popup-alert.service
               style="margin-top: 0.55rem;"
               [ngModel]="cerealOtherText()"
               (ngModelChange)="cerealOtherText.set($event)"
-              placeholder="Descreva outros cereais ou tubérculos..." />
+              placeholder="Ex.: batata-baroa (mandioquinha), cará, macarrão, cuscuz..." />
           }
         </div>
 
-        <!-- Grupo 3: Leguminosas -->
+        <!-- Grupo 3: Grupo dos feijões (leguminosas) -->
         <div class="card-elevated">
-          <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem;">🫘 3. Leguminosas (Proteína Vegetal)</div>
+          <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem;">🫘 3. Grupo dos Feijões (Leguminosas)</div>
           <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
             @for (item of legumeOptions; track item) {
               <button
@@ -173,13 +174,13 @@ import { PopupAlertService } from '../../../../core/services/popup-alert.service
               style="margin-top: 0.55rem;"
               [ngModel]="legumeOtherText()"
               (ngModelChange)="legumeOtherText.set($event)"
-              placeholder="Descreva outras leguminosas..." />
+              placeholder="Ex.: feijão-preto, feijão-de-corda, soja..." />
           }
         </div>
 
-        <!-- Grupo 4: Proteínas Animais (Ferro Heme) -->
+        <!-- Grupo 4: Grupo das carnes e ovos -->
         <div class="card-elevated">
-          <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem;">🥩 4. Proteínas Animais (Ferro Heme)</div>
+          <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem;">🥩 4. Grupo das Carnes e Ovos</div>
           <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
             @for (item of proteinOptions; track item) {
               <button
@@ -215,15 +216,25 @@ import { PopupAlertService } from '../../../../core/services/popup-alert.service
               style="margin-top: 0.55rem;"
               [ngModel]="proteinOtherText()"
               (ngModelChange)="proteinOtherText.set($event)"
-              placeholder="Descreva outras proteínas animais..." />
+              placeholder="Ex.: carne suína, cabrito, cordeiro, miúdos/moela..." />
           }
         </div>
       </div>
 
+      <div class="card-elevated" style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem;">
+        <strong>Quantidade aproximada no almoço/jantar (Quadro 1 — pág. 31):</strong>
+        Aos 6 meses: 2 a 3 colheres de sopa no total (jantar aos 6m: leite materno) •
+        Entre 7 e 8 meses: 3 a 4 colheres de sopa no total •
+        Entre 9 e 12 meses: 4 a 5 colheres de sopa no total •
+        Entre 1 e 2 anos: 5 a 6 colheres de sopa no total.
+      </div>
+
       <button type="button" class="btn btn-feeding" style="width: 100%;" (click)="savePlate()">
         <span aria-hidden="true">🍽️</span>
-        <span>Registrar Refeição Sólida (4 Grupos)</span>
+        <span>Registrar Refeição da Criança</span>
       </button>
+
+      <app-official-reference page="Caderneta da Criança, p. 31: Quadro 1 – Esquema alimentar para crianças até 2 anos; p. 32: Quadro 2 – Grupos de alimentos; p. 33 e 34: Doze Passos" />
     </div>
   `
 })
@@ -233,12 +244,12 @@ export class SolidsPlateSelectorComponent {
 
   mealType = 'Lunch';
   acceptanceLevel = 'High';
-  eatingAutonomy = 'BLW_Assisted';
+  eatingAutonomy = 'PureeSpoon';
 
-  readonly vegOptions = ['Abóbora', 'Brócolis', 'Cenoura', 'Abobrinha', 'Espinafre', 'Chuchu'];
-  readonly cerealOptions = ['Arroz integral', 'Batata-doce', 'Mandioca', 'Inhame', 'Aveia (Glúten)', 'Milho'];
-  readonly legumeOptions = ['Feijão carioca', 'Lentilha', 'Grão-de-bico', 'Ervilha seca'];
-  readonly proteinOptions = ['Carne bovina', 'Frango desfiado', 'Ovo bem cozido ⚠️', 'Peixe (Tilápia) ⚠️', 'Fígado bovino'];
+  readonly vegOptions = ['Abóbora (jerimum)', 'Brócolis', 'Cenoura', 'Abobrinha', 'Espinafre', 'Chuchu', 'Banana', 'Mamão'];
+  readonly cerealOptions = ['Arroz', 'Batata-doce', 'Mandioca (aipim/macaxeira)', 'Inhame', 'Aveia', 'Milho / Fubá'];
+  readonly legumeOptions = ['Feijão carioca', 'Lentilha', 'Grão-de-bico', 'Ervilha'];
+  readonly proteinOptions = ['Carne de boi', 'Aves (Frango)', 'Ovos de galinha', 'Pescados (Peixe)', 'Vísceras / Fígado'];
 
   readonly selectedVeg = signal<string[]>([]);
   readonly selectedCereals = signal<string[]>([]);
@@ -355,11 +366,11 @@ export class SolidsPlateSelectorComponent {
 
     const allergens: string[] = [];
     for (const p of animalProtein) {
-      if (p.includes('Ovo')) allergens.push('Ovo Cozido');
-      if (p.includes('Peixe')) allergens.push('Peixe');
+      if (p.includes('Ovo')) allergens.push('Ovos de galinha');
+      if (p.includes('Peixe') || p.includes('Pescados')) allergens.push('Pescados');
     }
     for (const c of cerealsAndTubers) {
-      if (c.includes('Glúten')) allergens.push('Glúten (Aveia)');
+      if (c.includes('Aveia') || c.includes('Trigo')) allergens.push('Aveia / Trigo');
     }
 
     await this.store.logSolidsPlate({

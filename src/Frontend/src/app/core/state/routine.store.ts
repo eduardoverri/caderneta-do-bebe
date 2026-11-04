@@ -549,7 +549,7 @@ export class RoutineStore {
   }): Promise<void> {
     const babyId = this.babyStore.selectedBabyId();
     if (!babyId) return;
-    const label = payload.feedingType === 'Formula' ? 'Fórmula' : 'Leite';
+    const label = payload.feedingType === 'Formula' ? 'Leite artificial' : 'Leite materno ordenhado';
     const dto = {
       category: 'Feeding',
       timestamp: new Date().toISOString(),
@@ -568,7 +568,7 @@ export class RoutineStore {
       this.handleEventCreated(
         created,
         'Registro de alimentação líquida salvo com sucesso.',
-        `${label} Registrada`
+        `${label} Registrado`
       );
       await this.refreshAllForBaby(babyId);
     } catch {
@@ -599,8 +599,8 @@ export class RoutineStore {
       );
       this.handleEventCreated(
         created,
-        'Refeição sólida salva com sucesso.',
-        'Refeição Sólida Salva'
+        'Refeição da alimentação complementar salva com sucesso.',
+        'Alimentação Complementar Salva'
       );
       await this.refreshAllForBaby(babyId);
     } catch {
@@ -669,13 +669,13 @@ export class RoutineStore {
     try {
       await firstValueFrom(this.http.post(`${this.apiBaseUrl}/babies/${babyId}/feeding/allergen-trial`, payload));
       this.popupAlert.success(
-        'Protocolo alergênico de 72h iniciado com sucesso.',
-        'Protocolo 72h Iniciado'
+        'Acompanhamento de novo alimento iniciado com sucesso.',
+        'Acompanhamento Alimentar Iniciado'
       );
       await this.refreshAllForBaby(babyId);
     } catch {
       this.popupAlert.error(
-        'Não foi possível iniciar o protocolo alergênico de 72h.',
+        'Não foi possível iniciar o acompanhamento alimentar.',
         'Erro ao Salvar'
       );
     }
@@ -698,24 +698,24 @@ export class RoutineStore {
         if (symptoms.facialSwelling || symptoms.wheezing) {
           this.popupAlert.error(
             updated.evaluation.clinicalGuidance,
-            'Emergência Alérgica'
+            'Sinais de Perigo • Emergência'
           );
         } else {
           this.popupAlert.warning(
             updated.evaluation.clinicalGuidance,
-            'Reação Alérgica'
+            'Atenção • Reação Alimentar'
           );
         }
       } else {
         this.popupAlert.success(
-          'Checklist de sintomas atualizado sem reação adversa.',
-          'Monitoramento 72h Atualizado'
+          'Checklist de sinais atualizado sem intercorrências.',
+          'Acompanhamento Alimentar Atualizado'
         );
       }
       await this.refreshAllForBaby(babyId);
     } catch {
       this.popupAlert.error(
-        'Erro ao atualizar o checklist de sintomas alergênicos.',
+        'Erro ao atualizar o checklist de sinais do alimento.',
         'Erro ao Atualizar'
       );
     }
@@ -750,8 +750,8 @@ export class RoutineStore {
       return { ok: true, message: res.safety.message };
     } catch (err: unknown) {
       const errorObj = err as { error?: { message?: string } };
-      const msg = errorObj?.error?.message ?? 'Bloqueio farmacológico de segurança: verifique dose máxima por peso ou intervalo mínimo.';
-      this.popupAlert.error(msg, 'Bloqueio Farmacológico');
+      const msg = errorObj?.error?.message ?? 'Bloqueio farmacológico de segurança: verifique a receita médica, a dose por peso ou o intervalo mínimo.';
+      this.popupAlert.error(msg, 'Segurança Medicamentosa');
       return { ok: false, message: msg };
     }
   }
@@ -764,13 +764,13 @@ export class RoutineStore {
         this.http.put(`${this.apiBaseUrl}/babies/${babyId}/milestones/${milestoneCode}`, { status, notes })
       );
       this.popupAlert.success(
-        'Marco motor atualizado com sucesso.',
-        'Marco Motor Salvo'
+        'Marco do desenvolvimento infantil atualizado com sucesso.',
+        'Marco do Desenvolvimento Salvo'
       );
       await this.refreshAllForBaby(babyId);
     } catch {
       this.popupAlert.error(
-        'Erro ao atualizar o marco motor.',
+        'Erro ao atualizar o marco do desenvolvimento infantil.',
         'Erro ao Atualizar'
       );
     }
@@ -791,8 +791,8 @@ export class RoutineStore {
       );
       this.babyStore.updateBabyInCurrentUser(updatedBaby);
       this.popupAlert.success(
-        'Aferição antropométrica e curva OMS registradas com sucesso.',
-        'Antropometria Registrada'
+        'Aferição antropométrica e registro nos gráficos de crescimento (OMS) salvos com sucesso.',
+        'Vigilância do Crescimento Registrada'
       );
     } catch {
       await this.offlineSync.enqueueOfflineEvent(babyId, `/babies/${babyId}/growth`, payload);
@@ -833,12 +833,12 @@ export class RoutineStore {
       if (ev.clinicalFlags.urgencyLevel === 'Emergency' || ev.clinicalFlags.urgencyLevel === 'Urgent') {
         this.popupAlert.error(
           ev.clinicalFlags.alertMessage,
-          'Alerta Clínico Pediátrico (Red Flag)'
+          'Alerta de Sinais de Perigo (Caderneta da Criança)'
         );
       } else {
         this.popupAlert.warning(
           ev.clinicalFlags.alertMessage,
-          'Aviso Clínico Pediátrico'
+          'Aviso de Acompanhamento da Criança'
         );
       }
     }
@@ -858,7 +858,7 @@ export class RoutineStore {
     if (!babyId) return;
     try {
       localStorage.setItem(`babyroutine_events_${babyId}`, JSON.stringify(events.slice(0, 250)));
-    } catch {}
+    } catch { }
   }
 
   private getLocalAllergenTrials(babyId: string): AllergenTrialItem[] {
@@ -875,7 +875,7 @@ export class RoutineStore {
     if (!babyId) return;
     try {
       localStorage.setItem(`babyroutine_allergens_${babyId}`, JSON.stringify(items));
-    } catch {}
+    } catch { }
   }
 
   private getLocalMilestones(babyId: string): MilestoneItem[] {
@@ -892,7 +892,7 @@ export class RoutineStore {
     if (!babyId) return;
     try {
       localStorage.setItem(`babyroutine_milestones_${babyId}`, JSON.stringify(items));
-    } catch {}
+    } catch { }
   }
 
   private mergeEvents(serverEvents: RoutineEventModel[], localEvents: RoutineEventModel[]): RoutineEventModel[] {

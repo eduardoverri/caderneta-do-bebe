@@ -292,13 +292,13 @@ export class AppComponent implements OnInit {
   readonly tabs = [
     { id: 'dashboard', label: 'Início', icon: '📊' },
     { id: 'sleep', label: 'Sono', icon: '💤' },
-    { id: 'feeding', label: 'Nutrição', icon: '🤱' },
+    { id: 'feeding', label: 'Alimentação', icon: '🤱' },
     { id: 'diapers', label: 'Fraldas', icon: '🧷' },
-    { id: 'health', label: 'Saúde', icon: '💊' },
-    { id: 'milestones', label: 'Marcos', icon: '🏆' },
-    { id: 'growth', label: 'Curvas OMS', icon: '📈' },
-    { id: 'report', label: 'Relatório', icon: '🩺' },
-    { id: 'children', label: 'Filhos', icon: '👶' }
+    { id: 'health', label: 'Saúde e Vacinas', icon: '💊' },
+    { id: 'milestones', label: 'Desenvolvimento', icon: '🏆' },
+    { id: 'growth', label: 'Crescimento (OMS)', icon: '📈' },
+    { id: 'report', label: 'Consultas', icon: '🩺' },
+    { id: 'children', label: 'Identificação', icon: '👶' }
   ];
 
   async ngOnInit(): Promise<void> {

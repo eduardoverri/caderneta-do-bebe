@@ -6,11 +6,12 @@ import { BabyStore } from '../../core/state/baby.store';
 import { RoutineStore } from '../../core/state/routine.store';
 import { PopupAlertService } from '../../core/services/popup-alert.service';
 import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
+import { OfficialReferenceComponent } from '../../shared/components/official-reference/official-reference.component';
 
 @Component({
   selector: 'app-children-manager',
   standalone: true,
-  imports: [FormsModule, DatePipe, BabyAgePipe],
+  imports: [FormsModule, DatePipe, BabyAgePipe, OfficialReferenceComponent],
   template: `
     <div class="grid-2">
       <!-- Lista de Filhos vinculados à Conta Google atual -->
@@ -19,10 +20,10 @@ import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
           <div>
             <h3 class="section-title" style="margin-bottom: 0.15rem;">
               <span aria-hidden="true">👶</span>
-              <span>Filhos Vinculados à Conta Google</span>
+              <span>Identificação da Criança — Caderneta da Criança (Passaporte da Cidadania)</span>
             </h3>
             <p style="font-size: 0.84rem; color: var(--text-secondary);">
-              Usuário: <strong>{{ authService.currentUser()?.email }}</strong> • Cada filho possui linha do tempo, janelas de sono, alérgenos e marcos 100% separados.
+              Usuário: <strong>{{ authService.currentUser()?.email }}</strong> • A Caderneta da Criança: Passaporte da Cidadania é um documento importante e único no qual devem ficar registradas todas as informações sobre o atendimento à criança nos serviços de saúde, de educação e de assistência social para o acompanhamento desde o momento do seu nascimento até os 9 anos de idade.
             </p>
           </div>
           <span class="badge badge-sleep">{{ babyStore.babies().length }} filho(s)</span>
@@ -81,22 +82,23 @@ import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
             </div>
           }
         </div>
+        <app-official-reference page="Caderneta da Criança, p. 2: apresentação; p. 4: identificação da criança; p. 19 e 89: cuidados com o bebê pré-termo e idade corrigida; p. 69: parto e nascimento" />
       </section>
 
       <!-- Formulário para Adicionar Novo Filho(a) à Conta Google -->
       <section class="card" style="border-top: 4px solid var(--cat-diaper);">
         <h3 class="section-title">
           <span aria-hidden="true">➕</span>
-          <span>Adicionar Novo Filho(a) à Conta Google</span>
+          <span>Identificação da Criança e Dados do Nascimento</span>
         </h3>
         <p style="font-size: 0.84rem; color: var(--text-secondary); margin-bottom: 1rem;">
-          Cria um espaço isolado de rotina, vacinas e marcos motores (com cálculo automático de idade corrigida se prematuro &lt; 37 semanas).
+          Chamamos de pré-termo os bebês que nascem com menos de 37 semanas de idade gestacional. Para saber como estimular seu bebê (pág. 37 à 52) e para avaliar o seu desenvolvimento (pág. 78 à 86), você precisa, primeiro, corrigir a sua idade: basta diminuir da idade atual o tempo que faltou para ele completar 9 meses (ou 40 semanas de idade gestacional).
         </p>
 
         <div class="grid-2" style="margin-bottom: 0.85rem;">
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Nome do Filho(a)</label>
-            <input type="text" class="input-field" [(ngModel)]="name" placeholder="Nome do filho(a)" />
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Nome da Criança</label>
+            <input type="text" class="input-field" [(ngModel)]="name" placeholder="Nome da criança" />
           </div>
 
           <div>
@@ -105,35 +107,35 @@ import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
           </div>
 
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Semanas Gestacionais (IG)</label>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">IG — Semanas</label>
             <input type="number" class="input-field" [(ngModel)]="gestationalWeeks" min="24" max="42" />
           </div>
 
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Dias Gestacionais (+dias)</label>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">IG — Dias</label>
             <input type="number" class="input-field" [(ngModel)]="gestationalDays" min="0" max="6" />
           </div>
 
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Peso Atual (Gramas)</label>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Peso (g)</label>
             <input type="number" class="input-field" [(ngModel)]="currentWeightGrams" min="500" max="20000" />
           </div>
 
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Comprimento Atual (cm)</label>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Comprimento / Estatura (cm)</label>
             <input type="number" step="0.5" class="input-field" [(ngModel)]="currentHeightCm" min="30" max="110" />
           </div>
 
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Perímetro Cefálico (cm)</label>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Perímetro Cefálico — PC (cm)</label>
             <input type="number" step="0.1" class="input-field" [(ngModel)]="headCircumferenceCm" min="20" max="60" />
           </div>
 
           <div>
-            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Sexo Biológico (Curva OMS)</label>
+            <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Sexo (Gráficos de Crescimento OMS/MS)</label>
             <select class="input-field" [(ngModel)]="gender">
-              <option value="F">Feminino</option>
-              <option value="M">Masculino</option>
+              <option value="F">Menina (Feminino)</option>
+              <option value="M">Menino (Masculino)</option>
             </select>
           </div>
 
@@ -156,7 +158,7 @@ import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
           style="width: 100%;"
           (click)="createChild()">
           <span aria-hidden="true">👶</span>
-          <span>Cadastrar Filho(a) e Iniciar Rotina Isolada</span>
+          <span>Cadastrar Criança e Iniciar Acompanhamento</span>
         </button>
       </section>
     </div>

@@ -6,7 +6,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
   template: `
     <div class="card-elevated" style="margin-bottom: 1rem;">
       <div style="font-weight: 700; font-size: 0.88rem; margin-bottom: 0.5rem;">
-        1. ESTADO DA FRALDA (CODIFICAÇÃO RÁPIDA SEÇÃO 4.1)
+        1. ESTADO DA FRALDA (TROCA DE FRALDAS MOLHADAS OU SUJAS — PÁG. 18)
       </div>
       <div class="grid-4" style="margin-bottom: 1rem;">
         @for (st of states; track st.code) {
@@ -22,7 +22,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
       </div>
 
       <div style="font-weight: 700; font-size: 0.88rem; margin-bottom: 0.5rem;">
-        2. INTENSIDADE / VOLUME
+        2. VOLUME DE URINA / EVACUAÇÃO (OBSERVAR SINAL DE URINAR POUCO — PÁG. 21)
       </div>
       <div class="grid-3">
         @for (vol of volumes; track vol.level) {
@@ -46,14 +46,14 @@ export class QuickCodePadComponent {
 
   readonly states = [
     { code: 'L', label: 'Limpa', icon: '✨' },
-    { code: 'U', label: 'Urina', icon: '💧' },
-    { code: 'E', label: 'Evacuação', icon: '💩' },
-    { code: 'M', label: 'Mista (U+E)', icon: '🧷' }
+    { code: 'U', label: 'Urina (Xixi)', icon: '💧' },
+    { code: 'E', label: 'Evacuação (Cocô)', icon: '💩' },
+    { code: 'M', label: 'Mista (Xixi + Cocô)', icon: '🧷' }
   ];
 
   readonly volumes = [
-    { level: 1, label: 'Pouco (Baixo)' },
-    { level: 2, label: 'Médio (Normal)' },
-    { level: 3, label: 'Cheia (Alto)' }
+    { level: 1, label: 'Pouco (Atenção: Urinar pouco)' },
+    { level: 2, label: 'Médio (Habitual)' },
+    { level: 3, label: 'Cheia (Fralda muito molhada/suja)' }
   ];
 }

@@ -12,28 +12,28 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
     <div class="card" style="border-top: 4px solid var(--cat-sleep);">
       <h3 class="section-title">
         <span aria-hidden="true">⏱️</span>
-        <span>Cronômetro e Registro de Soneca / Sono Noturno</span>
+        <span>O Sono do Bebê — Registro do Tempo e da Posição no Sono (pág. 17, 41, 42 e 71)</span>
       </h3>
 
       <div style="text-align: center; padding: 1rem; background: var(--bg-surface-elevated); border-radius: 16px; margin-bottom: 1rem;">
-        <div style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase;">Duração da Soneca em Andamento</div>
+        <div style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase;">Duração do Sono em Andamento</div>
         <div class="mono-timer" style="font-size: 2.6rem; font-weight: 800; color: var(--cat-sleep); margin: 0.35rem 0;">
           {{ formattedElapsed() }}
         </div>
         <div style="display: flex; justify-content: center; gap: 0.75rem; margin-top: 0.5rem;">
           <button type="button" class="btn btn-sleep" (click)="toggleTimer()">
             <span aria-hidden="true">{{ isRunning() ? '⏸️' : '▶️' }}</span>
-            <span>{{ isRunning() ? 'Pausar Cronômetro' : 'Iniciar Soneca Agora' }}</span>
+            <span>{{ isRunning() ? 'Pausar Cronômetro' : 'Iniciar Sono Agora' }}</span>
           </button>
         </div>
       </div>
 
       <div class="grid-2">
         <div>
-          <label style="font-size: 0.84rem; font-weight: 600; display: block; margin-bottom: 0.3rem;">Tipo de Sono</label>
+          <label style="font-size: 0.84rem; font-weight: 600; display: block; margin-bottom: 0.3rem;">Período do Sono (pág. 17)</label>
           <select class="input-field" [(ngModel)]="sleepType">
-            <option value="Nap">Soneca Diurna (Ciclo 50–90 min)</option>
-            <option value="NightSleep">Sono Noturno Consolidado</option>
+            <option value="Nap">Sono Diurno (Ambiente normalmente iluminado e barulho normal)</option>
+            <option value="NightSleep">Sono Noturno (Ambiente escuro e silencioso)</option>
           </select>
         </div>
 
@@ -43,22 +43,22 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
         </div>
 
         <div>
-          <label style="font-size: 0.84rem; font-weight: 600; display: block; margin-bottom: 0.3rem;">Local do Adormecimento</label>
+          <label style="font-size: 0.84rem; font-weight: 600; display: block; margin-bottom: 0.3rem;">Local e Posição no Sono (pág. 17, 61 e 71)</label>
           <select class="input-field" [(ngModel)]="sleepLocation">
-            <option value="Crib">Berço (Seguro, sem objetos soltos)</option>
-            <option value="Lap">Colo / Sling</option>
-            <option value="Stroller">Carrinho de Passeio</option>
-            <option value="CoSleeping">Cama Compartilhada / Co-leito</option>
+            <option value="Crib">Berço ou rede ao lado da cama dos pais (De barriga para cima, sem travesseiro/cobertor)</option>
+            <option value="Lap">Colo / Posição Canguru (Contato pele a pele — pág. 16, 19 e 20)</option>
+            <option value="Stroller">Carrinho / Lugar tranquilo, arejado e limpo</option>
+            <option value="CoSleeping">Alojamento conjunto / Cuidados noturnos</option>
           </select>
         </div>
 
         <div>
-          <label style="font-size: 0.84rem; font-weight: 600; display: block; margin-bottom: 0.3rem;">Associação / Método de Indução</label>
+          <label style="font-size: 0.84rem; font-weight: 600; display: block; margin-bottom: 0.3rem;">Como Acalmou / Dormiu (pág. 16, 40 a 42)</label>
           <select class="input-field" [(ngModel)]="fallingAsleepMethod">
-            <option value="Blackout + Ruído Branco">Autônomo no Berço (Blackout + Ruído Branco)</option>
-            <option value="Balanço rítmico no colo">Balanço rítmico no colo</option>
-            <option value="Sucção ao seio / mamadeira">Sucção ao seio / mamadeira</option>
-            <option value="Chupeta e tapinhas suaves">Chupeta e tapinhas suaves</option>
+            <option value="Canções de ninar suaves e leitura">Canções de ninar suaves e leitura na rotina do sono (pág. 41 e 42)</option>
+            <option value="Aconchego no colo e toque suave">Aconchego no colo e voz suave dos pais (pág. 16)</option>
+            <option value="Amamentação no peito">Amamentação no peito (fonte de nutrição e segurança — pág. 16)</option>
+            <option value="Deitada de barriga para cima no berço">Tranquila no berço (de barriga para cima, boca e nariz descobertos — pág. 17)</option>
           </select>
         </div>
       </div>
@@ -66,7 +66,7 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
       <div style="margin-top: 0.85rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 600; font-size: 0.9rem;">
           <input type="checkbox" [(ngModel)]="hadResistance" style="width: 18px; height: 18px;" />
-          <span>Houve resistência intensa (>20 min) para adormecer ou soneca curta (<35 min)</span>
+          <span>Apresentou dificuldade com o sono ou alteração do sono (pág. 53, 58 e 66)</span>
         </label>
       </div>
 
@@ -76,17 +76,17 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
       </button>
 
       <div class="card-elevated" style="margin-top: 1rem; font-size: 0.85rem;">
-        <div style="font-weight: 700; margin-bottom: 0.35rem;">🌙 O sono do bebê — orientações oficiais</div>
+        <div style="font-weight: 700; margin-bottom: 0.35rem;">🌙 O sono do bebê — orientações oficiais (pág. 17, 41, 42 e 61)</div>
         <ul style="padding-left: 1.2rem; color: var(--text-secondary);">
-          <li>O recém-nascido dorme muito: ofereça um lugar tranquilo, arejado e limpo para dormir.</li>
-          <li>Deixe o bebê de <strong>barriga para cima</strong> e observe se a boca e o nariz estão descobertos.</li>
-          <li>Não use travesseiro nem cobertor; agasalhe com roupa adequada à temperatura do ambiente.</li>
-          <li>Nos primeiros meses, coloque o berço ou a rede ao lado da cama dos pais ou cuidadores, o que facilita os cuidados e a amamentação à noite.</li>
-          <li>Durante o dia, o sono pode ocorrer em ambiente com iluminação e barulho normais; à noite, em ambiente escuro e silencioso.</li>
-          <li>Após os 6 meses, manter uma rotina diária de dormir, comer e brincar dá segurança à criança.</li>
-          <li><strong>Sinal de perigo:</strong> criança muito sonolenta, com dificuldade para acordar — procure o serviço de saúde ou ligue 192 (SAMU).</li>
+          <li>O bebê recém-nascido dorme muito. Por isso, ele precisa de um lugar tranquilo, arejado e limpo para dormir.</li>
+          <li>Cuide para que ele permaneça de <strong>barriga para cima</strong>. Observe se sua boca e nariz estão descobertos.</li>
+          <li>Não use travesseiro e cobertor e agasalhe-o com roupa adequada à temperatura do ambiente. Ajuste o lençol do colchão, cuidando para que o rosto do bebê não seja encoberto por lençóis, cobertores, almofadas e travesseiros. Proteja o berço e o cercado com grades altas com, no máximo, 6 cm entre elas (pág. 61).</li>
+          <li>Para facilitar os cuidados e a amamentação durante a noite, nos primeiros meses de vida, coloque o berço ou a rede do bebê ao lado da cama ou da rede dos pais ou cuidadores.</li>
+          <li>Durante o dia o sono do bebê pode ser em ambiente normalmente iluminado e com exposição ao barulho normal e à noite em ambiente escuro e silencioso.</li>
+          <li>Na hora de colocá-la para dormir, as canções suaves ajudam muito a acalmá-la (pág. 41). Aproveite o momento de dormir ou a rotina do sono para ler por alguns minutos para seu neném (pág. 42).</li>
+          <li><strong>Sinal de perigo (pág. 23):</strong> Criança muito sonolenta, com dificuldade para acordar — procure o serviço de urgência ou ligue para 192 - SAMU (a ligação é gratuita).</li>
         </ul>
-        <app-official-reference page="Caderneta da Criança, p. 17: o sono do bebê; p. 23: sinais de perigo; p. 42: rotina" />
+        <app-official-reference page="Caderneta da Criança, p. 17: o sono do bebê; p. 23: sinais de perigo; p. 41 e 42: rotina do sono; p. 61: prevenção de sufocação e quedas" />
       </div>
     </div>
   `
@@ -102,7 +102,7 @@ export class NapStopwatchComponent {
   sleepType: 'Nap' | 'NightSleep' = 'Nap';
   durationMinutes = 75;
   sleepLocation = 'Crib';
-  fallingAsleepMethod = 'Blackout + Ruído Branco';
+  fallingAsleepMethod = 'Canções de ninar suaves e leitura';
   hadResistance = false;
 
   formattedElapsed(): string {

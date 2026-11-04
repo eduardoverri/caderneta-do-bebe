@@ -13,13 +13,13 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
         <div>
           <h3 class="section-title" style="margin-bottom: 0.15rem;">
             <span aria-hidden="true">📋</span>
-            <span>Ficha Diária de Registro Sintético (Linha do Tempo Cronológica)</span>
+            <span>Registro Diário do Acompanhamento da Criança (Linha do Tempo)</span>
           </h3>
           <p style="font-size: 0.84rem; color: var(--text-secondary);">
-            Registro cronológico da rotina para compartilhar com a família e com os profissionais de saúde nas consultas
-            de acompanhamento, com os sinais de perigo e a identificação de quem registrou cada evento.
+            Registro cronológico dos cuidados diários para compartilhar entre mãe, pai, familiares e profissionais de saúde
+            nas consultas recomendadas, destacando eventuais sinais de perigo e quem registrou cada cuidado.
           </p>
-          <app-official-reference page="Caderneta da Criança, p. 40 e 68: acompanhamento compartilhado; p. 23: sinais de perigo" />
+          <app-official-reference page="Caderneta da Criança — Menina (5ª ed.), p. 14, 23, 40 e 68: consultas recomendadas, sinais de perigo e acompanhamento compartilhado" />
         </div>
         <span class="badge">
           <span aria-hidden="true">🕒</span>
@@ -33,8 +33,8 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
             <tr style="border-bottom: 2px solid var(--border-strong); text-align: left;">
               <th style="padding: 0.65rem 0.5rem;">Horário</th>
               <th style="padding: 0.65rem 0.5rem;">Categoria</th>
-              <th style="padding: 0.65rem 0.5rem;">Evento / Detalhes Clínicos</th>
-              <th style="padding: 0.65rem 0.5rem;">Observações / Alertas</th>
+              <th style="padding: 0.65rem 0.5rem;">Evento / Detalhes do Registro</th>
+              <th style="padding: 0.65rem 0.5rem;">Observações / Sinais de Perigo</th>
               <th style="padding: 0.65rem 0.5rem;">Cuidador</th>
             </tr>
           </thead>
@@ -91,9 +91,9 @@ export class TimelineFeedComponent {
   getCategoryLabel(cat: string): string {
     switch (cat) {
       case 'Sleep': return 'Sono';
-      case 'Feeding': return 'Nutrição';
-      case 'Diaper': return 'Higiene';
-      case 'Medication': return 'Saúde/Med';
+      case 'Feeding': return 'Alimentação';
+      case 'Diaper': return 'Fraldas/Higiene';
+      case 'Medication': return 'Saúde/Medicação';
       case 'Bath': return 'Banho';
       case 'WakeUp': return 'Despertar';
       default: return cat;
@@ -116,14 +116,14 @@ export class TimelineFeedComponent {
     const d = ev.details;
     if (ev.category === 'Diaper') {
       const code = `${d.state ?? 'U'}${d.volumeLevel ?? 2}`;
-      const color = d.stoolColor ? ` • Cor: ${d.stoolColor}` : '';
-      const cream = d.barrierCreamApplied ? ' • Pomada de barreira' : '';
+      const color = d.stoolColor ? ` • Cor das fezes: ${d.stoolColor}` : '';
+      const cream = d.barrierCreamApplied ? ' • Cuidado da pele na troca' : '';
       return `Fralda: ${code}${color}${cream}`;
     }
     if (ev.category === 'Sleep') {
       const type = d.sleepType === 'NightSleep' ? 'Sono Noturno' : 'Soneca';
       const dur = ev.durationMinutes ? ` (${ev.durationMinutes} min)` : '';
-      const ww = d.wakeWindowPrecedingMinutes ? ` • Janela ant.: ${d.wakeWindowPrecedingMinutes} min` : '';
+      const ww = d.wakeWindowPrecedingMinutes ? ` • Tempo acordada ant.: ${d.wakeWindowPrecedingMinutes} min` : '';
       return `${type}${dur} • Local: ${d.sleepLocation ?? 'Berço'}${ww}`;
     }
     if (ev.category === 'Feeding') {
@@ -135,7 +135,7 @@ export class TimelineFeedComponent {
           ...(fg.legumes ?? []),
           ...(fg.animalProtein ?? [])
         ].join(', ');
-        return `Prato 4 Grupos (${d.solidsDetails.mealType}): ${items} • Aceitação: ${d.solidsDetails.acceptanceLevel}`;
+        return `Alimentação complementar (${d.solidsDetails.mealType}): ${items} • Aceitação: ${d.solidsDetails.acceptanceLevel}`;
       }
       if (d.breastfeedingDetails) {
         const bf = d.breastfeedingDetails;

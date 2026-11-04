@@ -5,28 +5,29 @@ import { BabyStore } from '../../core/state/baby.store';
 import { RoutineStore } from '../../core/state/routine.store';
 import { PopupAlertService } from '../../core/services/popup-alert.service';
 import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
+import { OfficialReferenceComponent } from '../../shared/components/official-reference/official-reference.component';
 
 @Component({
   selector: 'app-growth-tracker',
   standalone: true,
-  imports: [FormsModule, DatePipe, BabyAgePipe],
+  imports: [FormsModule, DatePipe, BabyAgePipe, OfficialReferenceComponent],
   template: `
     @if (babyStore.activeBaby(); as baby) {
       <div class="grid-2" style="margin-bottom: 1.25rem;">
-        <!-- Formulário de Registro de Nova Aferição Antropométrica & Curvas OMS -->
+        <!-- Formulário de Registro de Nova Aferição Antropométrica & Gráficos de Crescimento Infantil -->
         <section class="card" style="border-top: 4px solid var(--cat-diaper);">
           <h3 class="section-title">
             <span aria-hidden="true">📈</span>
-            <span>Registrar Evolução Antropométrica e Curva OMS</span>
+            <span>Vigilância do Crescimento Infantil — Registro de Medidas e Curvas OMS/MS (pág. 88 a 100)</span>
           </h3>
           <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
-            Paciente: <strong>{{ baby.name }}</strong> ({{ baby | babyAge }}) •
-            Atualiza os indicadores antropométricos atuais e adiciona um novo ponto na Curva de Crescimento da OMS.
+            Criança: <strong>{{ baby.name }}</strong> ({{ baby | babyAge }}) •
+            O melhor método de acompanhamento do crescimento infantil é o registro periódico do perímetro cefálico (até 2 anos), do peso, do comprimento (menores de 2 anos, medidas deitadas) ou da estatura (2 anos ou mais, medidas em pé) e do índice de massa corporal (IMC) na Caderneta da Criança.
           </p>
 
           <div class="grid-2" style="margin-bottom: 0.85rem;">
             <div>
-              <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Data da Aferição</label>
+              <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Data da Consulta / Aferição</label>
               <input
                 type="date"
                 class="input-field"
@@ -35,7 +36,7 @@ import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
             </div>
 
             <div>
-              <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Peso Aferido (Gramas)</label>
+              <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Peso (g)</label>
               <input
                 type="number"
                 class="input-field"
@@ -47,7 +48,7 @@ import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
             </div>
 
             <div>
-              <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Comprimento / Estatura (cm)</label>
+              <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Comprimento (&lt; 2 anos, deitada) / Estatura (≥ 2 anos, em pé) (cm)</label>
               <input
                 type="number"
                 class="input-field"
@@ -59,7 +60,7 @@ import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
             </div>
 
             <div>
-              <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Perímetro Cefálico (cm)</label>
+              <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Perímetro Cefálico — PC (cm) (até 2 anos)</label>
               <input
                 type="number"
                 class="input-field"
@@ -74,7 +75,7 @@ import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
           <div class="card-elevated" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
             <div>
               <div style="font-size: 0.76rem; color: var(--text-secondary); font-weight: 700;">
-                ESCORE-Z OMS ESTIMADO (PESO / IDADE)
+                CLASSIFICAÇÃO DO PESO PARA A IDADE (ESCORE-Z OMS/MS — PÁG. 92, 95 E 98)
               </div>
               <div style="font-size: 1.05rem; font-weight: 800; margin-top: 0.2rem;">
                 Z = {{ formatZScore(effectiveZScore()) }} • {{ classifyZScore(effectiveZScore()) }}
@@ -87,7 +88,7 @@ import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
                   type="checkbox"
                   [ngModel]="useCustomZScore()"
                   (ngModelChange)="useCustomZScore.set($event)" />
-                <span>Informar Escore-Z manual</span>
+                <span>Informar Escore-z manual</span>
               </label>
 
               @if (useCustomZScore()) {
@@ -110,18 +111,18 @@ import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
             style="width: 100%;"
             (click)="saveGrowthLog()">
             <span aria-hidden="true">📏</span>
-            <span>Salvar Aferição na Evolução Antropométrica</span>
+            <span>Salvar Medidas no Acompanhamento do Crescimento</span>
           </button>
         </section>
 
-        <!-- Resumo Atual de Indicadores Antropométricos -->
+        <!-- Resumo Atual de Medidas e Interpretação dos Gráficos -->
         <section class="card" style="border-top: 4px solid var(--cat-sleep);">
           <h3 class="section-title">
             <span aria-hidden="true">👶</span>
-            <span>Indicadores Antropométricos Atuais</span>
+            <span>Medidas Atuais e Interpretação dos Gráficos (pág. 88 e 89)</span>
           </h3>
           <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
-            Referência OMS por sexo biológico (<strong>{{ baby.gender === 'F' ? 'Feminino' : 'Masculino' }}</strong>) e idade corrigida quando prematuro (&lt; 37 semanas).
+            Curvas da OMS/MS (<strong>{{ baby.gender === 'F' ? 'Meninas' : 'Meninos' }}</strong>). Para recém-nascidos pré-termo (&lt; 37 semanas), utilizar o gráfico Intergrowth-21 (27 a 64 semanas pós-concepcionais, pág. 90) ou corrigir a idade cronológica (40 semanas menos IG do nascimento em semanas) até 2 anos de idade cronológica (ou até 3 anos se IG &lt; 28 semanas, pág. 89).
           </p>
 
           <div class="grid-2">
@@ -136,54 +137,60 @@ import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
             </div>
 
             <div class="card-elevated">
-              <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 700;">COMPRIMENTO ATUAL</div>
+              <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 700;">COMPRIMENTO / ESTATURA ATUAL</div>
               <div style="font-size: 1.3rem; font-weight: 800; margin-top: 0.2rem;">
                 {{ baby.currentHeightCm }} cm
               </div>
               <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">
-                Ao nascer: {{ baby.birthLengthCm }} cm
+                Ao nascer: {{ baby.birthLengthCm }} cm (Dif. deitada/em pé: 0,7 cm — pág. 88)
               </div>
             </div>
 
             <div class="card-elevated">
-              <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 700;">PERÍMETRO CEFÁLICO ATUAL</div>
+              <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 700;">PERÍMETRO CEFÁLICO (PC)</div>
               <div style="font-size: 1.3rem; font-weight: 800; margin-top: 0.2rem;">
                 {{ baby.headCircumferenceCm }} cm
               </div>
               <div style="font-size: 0.78rem; color: var(--cat-diaper); font-weight: 600; margin-top: 0.15rem;">
-                Monitoramento craniano ativo
+                Adequado entre -2 e +2 escores-z (pág. 78 e 91)
               </div>
             </div>
 
             <div class="card-elevated">
-              <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 700;">TOTAL DE AFERIÇÕES</div>
+              <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 700;">ÍNDICE DE MASSA CORPORAL (IMC)</div>
               <div style="font-size: 1.3rem; font-weight: 800; margin-top: 0.2rem;">
-                {{ baby.growthLogs.length }} registro(s)
+                {{ calculateBmi(baby.currentWeightGrams, baby.currentHeightCm) }} kg/m²
               </div>
               <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">
-                Sincronizado com o Relatório Pediátrico
+                IMC = Peso (kg) / Estatura² (m) (pág. 88, 94, 97 e 100)
               </div>
             </div>
+          </div>
+
+          <div class="card-elevated" style="margin-top: 0.85rem; font-size: 0.82rem; color: var(--text-secondary);">
+            <strong>🔍 Interpretando os Gráficos (pág. 89):</strong>
+            A curva de crescimento de uma criança que está crescendo adequadamente tende a seguir um traçado paralelo à linha verde (escore-z 0), acima ou abaixo dela. Qualquer mudança rápida que desvie a curva da criança para cima ou para baixo, ou então um traçado horizontal, devem ser investigados.
           </div>
         </section>
       </div>
 
-      <!-- Tabela de Evolução Antropométrica e Curvas OMS -->
+      <!-- Tabela de Registro de Medidas e Classificação OMS/MS -->
       <section class="card">
         <h3 class="section-title">
           <span aria-hidden="true">📊</span>
-          <span>Evolução Antropométrica e Curvas OMS (Z-Score Peso/Idade)</span>
+          <span>Registros de Medidas Antropométricas e Classificação do Peso para a Idade (pág. 77 e 91 a 100)</span>
         </h3>
 
         <div style="overflow-x: auto;">
           <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
             <thead>
               <tr style="border-bottom: 2px solid var(--border-strong); text-align: left;">
-                <th style="padding: 0.55rem;">Data da Aferição</th>
+                <th style="padding: 0.55rem;">Data</th>
                 <th style="padding: 0.55rem;">Peso (g)</th>
-                <th style="padding: 0.55rem;">Comprimento (cm)</th>
+                <th style="padding: 0.55rem;">Comprimento / Estatura (cm)</th>
                 <th style="padding: 0.55rem;">Perímetro Cefálico (cm)</th>
-                <th style="padding: 0.55rem;">Escore-Z OMS</th>
+                <th style="padding: 0.55rem;">IMC</th>
+                <th style="padding: 0.55rem;">Escore-z (Peso para a Idade — pág. 92)</th>
               </tr>
             </thead>
             <tbody>
@@ -193,6 +200,7 @@ import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
                   <td style="padding: 0.55rem; font-weight: 700;">{{ g.weightGrams }} g</td>
                   <td style="padding: 0.55rem;">{{ g.heightCm }} cm</td>
                   <td style="padding: 0.55rem;">{{ g.headCircumferenceCm }} cm</td>
+                  <td style="padding: 0.55rem;">{{ calculateBmi(g.weightGrams, g.heightCm) }}</td>
                   <td style="padding: 0.55rem;">
                     <span class="badge" [class.badge-diaper]="g.zScoreWeightForAge >= -2 && g.zScoreWeightForAge <= 2" [class.badge-milestone]="g.zScoreWeightForAge < -2 || g.zScoreWeightForAge > 2">
                       Z = {{ formatZScore(g.zScoreWeightForAge) }} ({{ classifyZScore(g.zScoreWeightForAge) }})
@@ -203,6 +211,8 @@ import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
             </tbody>
           </table>
         </div>
+
+        <app-official-reference page="Caderneta da Criança, p. 77: outras medidas e consultas necessárias; p. 88: vigilância do crescimento infantil; p. 89: interpretando os gráficos; p. 90 a 100: gráficos de crescimento infantil OMS/MS" />
       </section>
     }
   `
@@ -282,9 +292,17 @@ export class GrowthTrackerComponent implements OnInit {
   }
 
   classifyZScore(z: number): string {
-    if (z < -2) return 'Baixo peso para idade';
-    if (z > 2) return 'Peso elevado para idade';
-    return 'Normal';
+    if (z < -3) return 'Peso muito baixo para a idade';
+    if (z < -2) return 'Peso baixo para a idade';
+    if (z > 2) return 'Peso elevado para a idade';
+    return 'Peso adequado para a idade';
+  }
+
+  calculateBmi(weightGrams: number, heightCm: number): string {
+    if (!weightGrams || !heightCm || heightCm <= 0) return '-';
+    const weightKg = weightGrams / 1000;
+    const heightM = heightCm / 100;
+    return (weightKg / (heightM * heightM)).toFixed(1);
   }
 
   async saveGrowthLog(): Promise<void> {

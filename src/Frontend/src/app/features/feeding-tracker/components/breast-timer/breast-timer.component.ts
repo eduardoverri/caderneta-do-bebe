@@ -2,17 +2,18 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RoutineStore } from '../../../../core/state/routine.store';
 import { PopupAlertService } from '../../../../core/services/popup-alert.service';
+import { OfficialReferenceComponent } from '../../../../shared/components/official-reference/official-reference.component';
 
 @Component({
   selector: 'app-breast-timer',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, OfficialReferenceComponent],
   template: `
     <div class="card" style="border-top: 4px solid var(--cat-feeding);">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <h3 class="section-title" style="margin-bottom: 0;">
           <span aria-hidden="true">🤱</span>
-          <span>Cronômetro Duplo de Amamentação (1-Toque)</span>
+          <span>Amamentando o Bebê — Livre Demanda e Tempo de Mamada</span>
         </h3>
         <span class="badge badge-feeding">
           Último lado: {{ store.lastBreastSide() === 'Left' ? 'Esquerdo' : 'Direito' }}
@@ -72,12 +73,15 @@ import { PopupAlertService } from '../../../../core/services/popup-alert.service
         <span>Concluir e Salvar Mamada no Peito</span>
       </button>
 
-      <!-- Registro de Mamar Fórmula ou Leite (em Mililitros - mL) -->
+      <!-- Registro de Leite Materno Extraído ou Leite Artificial (em Mililitros - mL) -->
       <div class="card-elevated" style="border-top: 3px solid var(--cat-sleep); margin-bottom: 1rem;">
         <h4 style="font-size: 0.92rem; font-weight: 800; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
-          <span aria-hidden="true">🍼</span>
-          <span>Registrar Fórmula ou Leite (mL)</span>
+          <span aria-hidden="true">🥛</span>
+          <span>Registrar Leite Materno Extraído ou Leite Artificial (mL)</span>
         </h4>
+        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.65rem;">
+          O leite retirado deve ser oferecido, de preferência, em um copo, uma xícara ou uma colher. Não ofereça mamadeiras e chupetas nem use protetores de silicone, pois atrapalham a amamentação (pág. 25 e 30).
+        </p>
 
         <div class="grid-2" style="margin-bottom: 0.75rem;">
           <div>
@@ -86,8 +90,8 @@ import { PopupAlertService } from '../../../../core/services/popup-alert.service
               class="input-field"
               [ngModel]="bottleType()"
               (ngModelChange)="bottleType.set($event)">
-              <option value="Formula">Fórmula Infantil</option>
-              <option value="ExpressedMilk">Leite (Materno Ordenhado / Leite)</option>
+              <option value="ExpressedMilk">Leite Materno Extraído (em copo, xícara ou colher — pág. 30)</option>
+              <option value="Formula">Leite Artificial (LM+LA / LA — pág. 69 a 76)</option>
             </select>
           </div>
 
@@ -122,21 +126,23 @@ import { PopupAlertService } from '../../../../core/services/popup-alert.service
           class="btn btn-sleep"
           style="width: 100%;"
           (click)="saveBottleFeeding()">
-          <span aria-hidden="true">🍼</span>
-          <span>Registrar {{ bottleType() === 'Formula' ? 'Fórmula' : 'Leite' }} ({{ bottleVolumeMl() }} mL)</span>
+          <span aria-hidden="true">🥛</span>
+          <span>Registrar {{ bottleType() === 'Formula' ? 'Leite Artificial' : 'Leite Materno Extraído' }} ({{ bottleVolumeMl() }} mL)</span>
         </button>
       </div>
 
-      <!-- Guia de Sinais de Saciedade (Seção 2.1) -->
+      <!-- Orientações Oficiais sobre Tempo de Mamada, Pega da Mama e Quantidade do Leite (pág. 24 a 30) -->
       <div class="card-elevated" style="font-size: 0.85rem;">
         <div style="font-weight: 700; color: var(--cat-feeding); margin-bottom: 0.3rem;">
-          ✅ Marcadores Biológicos de Saciedade (Seção 2.1):
+          ✅ Orientações oficiais — Pega da mama, Tempo de mamada e Conservação do leite:
         </div>
         <ul style="padding-left: 1.2rem; color: var(--text-secondary);">
-          <li>Punhos que estavam cerrados se abrem relaxados (relaxamento periférico).</li>
-          <li>Desprendimento espontâneo do mamilo ou bico.</li>
-          <li>Diminuição gradual da sucção e entrada em sonolência tranquila.</li>
+          <li><strong>Importância do leite materno:</strong> O leite materno é um alimento completo e é recomendado para as crianças até os 2 anos de idade ou mais. Até os 6 meses de idade, deve ser o único alimento, ou seja, sua filha não precisa de chá, suco, água, outro leite ou alimento. Inicialmente, o bebê mama de 8 a 12 vezes por dia, sem horários fixos.</li>
+          <li><strong>Posição e pega da mama:</strong> O bebê deve estar virado de frente para você, bem junto do seu corpo (barriga com barriga), bem apoiado e com os braços livres. Só coloque sua filha para sugar quando ela abrir bem a boca: o queixo encosta na mama, os lábios ficam virados para fora, o nariz fica livre e a aréola aparece mais na parte de cima do que na parte de baixo da boca.</li>
+          <li><strong>Tempo de mamada:</strong> Cada bebê tem seu próprio ritmo de mamar e ele deve ser respeitado. Deixe sua filha mamar até que fique satisfeita. Não tenha pressa. Depois da mamada, coloque-a na posição vertical, para arrotar. O leite do início da mamada tem mais água e mata a sede. Já o leite do fim tem mais gordura, satisfaz a fome e faz o bebê ganhar peso.</li>
+          <li><strong>Como conservar o leite materno extraído:</strong> Pode ser conservado em geladeira por até 12 horas e no <em>freezer</em> ou no congelador por até 15 dias, contados a partir da data da primeira retirada. Para manter seus fatores de proteção, o leite materno não deve ser fervido e nem aquecido em micro-ondas (aquecer em banho-maria com o fogo desligado).</li>
         </ul>
+        <app-official-reference page="Caderneta da Criança, p. 24: importância do leite materno; p. 25: posição e pega da mama; p. 26: tempo de mamada; p. 28 a 30: extração e conservação do leite materno" />
       </div>
     </div>
   `
@@ -150,7 +156,7 @@ export class BreastTimerComponent {
   readonly rightSeconds = signal(0);
   private timerId?: ReturnType<typeof setInterval>;
 
-  readonly bottleType = signal<'Formula' | 'ExpressedMilk'>('Formula');
+  readonly bottleType = signal<'Formula' | 'ExpressedMilk'>('ExpressedMilk');
   readonly bottleVolumeMl = signal<number>(120);
   readonly presetVolumes = [30, 60, 90, 120, 150, 180, 210];
 
@@ -193,7 +199,7 @@ export class BreastTimerComponent {
       leftDurationSeconds: this.leftSeconds(),
       rightDurationSeconds: this.rightSeconds(),
       hungerCueStage: 'Early',
-      satietyCues: ['Relaxamento muscular periférico', 'Desprendimento espontâneo']
+      satietyCues: ['Mamou até ficar satisfeita', 'Colocada na posição vertical para arrotar']
     });
     this.leftSeconds.set(0);
     this.rightSeconds.set(0);

@@ -1,8 +1,10 @@
 import { Component, Input } from '@angular/core';
 
-/** Link oficial da documentação de referência (Caderneta da Criança, 5ª edição — Ministério da Saúde, 2022). */
+/** Referência oficial: Caderneta da Criança — Menina (Passaporte da Cidadania), 5ª edição — Ministério da Saúde, Brasília – DF, 2022. */
+export const OFFICIAL_REFERENCE_TITLE =
+  'Caderneta da Criança: Passaporte da Cidadania — 5ª edição (Ministério da Saúde, 2022)';
 export const OFFICIAL_REFERENCE_URL =
-  'https://www.gov.br/ans/pt-br/assuntos/operadoras/compromissos-e-interacoes-com-a-ans-1/programas-ans-1/caderneta_crianca_menino_5.ed.pdf';
+  'https://bvsms.saude.gov.br/bvs/publicacoes/caderneta_crianca_menina_5.ed.pdf';
 
 @Component({
   selector: 'app-official-reference',
@@ -12,7 +14,7 @@ export const OFFICIAL_REFERENCE_URL =
       <span aria-hidden="true">📚</span>
       <span>
         Referência:
-        <a [href]="url" target="_blank" rel="noopener noreferrer">{{ url }}</a>
+        <a [href]="url" target="_blank" rel="noopener noreferrer">{{ title }}</a>
         @if (page) {
           <span> ({{ page }})</span>
         }
@@ -37,6 +39,7 @@ export const OFFICIAL_REFERENCE_URL =
   `]
 })
 export class OfficialReferenceComponent {
+  readonly title = OFFICIAL_REFERENCE_TITLE;
   readonly url = OFFICIAL_REFERENCE_URL;
 
   /** Páginas/seções da Caderneta que fundamentam o texto (ex.: "Caderneta da Criança, p. 24"). */

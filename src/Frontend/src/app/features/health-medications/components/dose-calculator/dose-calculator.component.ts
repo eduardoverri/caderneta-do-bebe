@@ -3,25 +3,26 @@ import { FormsModule } from '@angular/forms';
 import { BabyStore } from '../../../../core/state/baby.store';
 import { RoutineStore } from '../../../../core/state/routine.store';
 import { PopupAlertService } from '../../../../core/services/popup-alert.service';
+import { OfficialReferenceComponent } from '../../../../shared/components/official-reference/official-reference.component';
 
 @Component({
   selector: 'app-dose-calculator',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, OfficialReferenceComponent],
   template: `
     <div class="card" style="border-top: 4px solid var(--cat-health);">
       <h3 class="section-title">
         <span aria-hidden="true">💊</span>
-        <span>Motor Farmacológico de Segurança: Dosagem por Peso & Bloqueio de Intervalo</span>
+        <span>Administração Segura de Medicamentos Prescritos e Prevenção de Intoxicações (pág. 61 e 64)</span>
       </h3>
       <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
         Peso Atual Cadastrado: <strong>{{ weightKg() }} kg</strong> ({{ babyStore.activeBaby().currentWeightGrams }}g) •
-        Impede superdosagem e bloqueia administração antes do intervalo mínimo (6h/8h).
+        <strong>ATENÇÃO (pág. 61):</strong> Nunca dê à criança remédio que não tenha sido receitado pelo médico. Verifique sempre a validade do que você oferece a sua filha. Mantenha medicamentos fora do alcance da criança (pág. 63).
       </p>
 
       <div class="grid-2" style="margin-bottom: 1rem;">
         <div>
-          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Medicação Aguda</label>
+          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Medicamento Receitado pelo Médico</label>
           <select class="input-field" [ngModel]="medicationName()" (ngModelChange)="medicationName.set($event)">
             <option value="Paracetamol Gotas (200mg/mL)">Paracetamol Gotas (200mg/mL) — Int. mín: 6h</option>
             <option value="Dipirona Gotas (500mg/mL)">Dipirona Sódica (500mg/mL) — Int. mín: 6h</option>
@@ -30,19 +31,19 @@ import { PopupAlertService } from '../../../../core/services/popup-alert.service
         </div>
 
         <div>
-          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Temperatura Aferida (°C)</label>
+          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Temperatura Aferida (°C) — Febre ≥ 37,5 °C / Hipotermia ≤ 35,5 °C (pág. 23)</label>
           <input type="number" step="0.1" class="input-field" [(ngModel)]="temperature" />
         </div>
 
         <div>
           <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">
-            Dose Solicitada (mg) — Limite máx seguro: {{ maxSafeMg() }} mg
+            Dose Prescrita (mg) — Limite máx seguro por peso: {{ maxSafeMg() }} mg
           </label>
           <input type="number" class="input-field" [ngModel]="doseMg()" (ngModelChange)="doseMg.set(+$event)" />
         </div>
 
         <div>
-          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Indicação Clínica</label>
+          <label style="font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Indicação Médica / Sintoma Observado</label>
           <input type="text" class="input-field" [(ngModel)]="reason" />
         </div>
       </div>
@@ -50,14 +51,20 @@ import { PopupAlertService } from '../../../../core/services/popup-alert.service
       <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
         <button type="button" class="btn btn-health" style="flex: 1;" (click)="submitDose()">
           <span aria-hidden="true">🛡️</span>
-          <span>Validar Segurança e Administrar Dose</span>
+          <span>Validar Segurança e Registrar Dose Prescrita</span>
         </button>
 
-        <button type="button" class="btn" (click)="simulateOverdoseTest()" title="Simula tentativa de superdosagem para testar bloqueio do MedicationSafetyEngine">
+        <button type="button" class="btn" (click)="simulateOverdoseTest()" title="Simula tentativa de superdosagem para testar bloqueio de segurança">
           <span aria-hidden="true">🧪</span>
           <span>Simular Teste de Superdosagem</span>
         </button>
       </div>
+
+      <div class="card-elevated" style="margin-top: 1rem; font-size: 0.83rem; color: var(--text-secondary);">
+        <strong>🚨 Sinais de Perigo e Intoxicação (Caderneta da Criança, pág. 23, 58 e 64):</strong>
+        Febre (temperatura igual ou maior do que 37,5 ºC) ou temperatura do corpo baixa (menor ou igual a 35,5 ºC em menores de 2 meses; hipotermia &lt; 36,5 ºC nas consultas pág. 70–73) são sinais de alerta. Quando os dentes de leite estão nascendo (por volta dos 6 meses), a criança pode apresentar alteração do sono, perda de apetite, pequeno aumento de temperatura, aumento da salivação, coceira nas gengivas e irritabilidade (pág. 58). Em casos de acidentes com medicamentos e outras substâncias tóxicas, procure urgentemente um serviço de saúde, chame o <strong>SAMU (192)</strong> ou ligue para o <strong>Centro de Informação Toxicológica (0800-722-6001)</strong>.
+      </div>
+      <app-official-reference page="Caderneta da Criança, p. 23: sinais de perigo; p. 58: nascimento dos dentes; p. 61, 63 e 64: prevenção de intoxicação e envenenamento" />
     </div>
   `
 })
@@ -69,7 +76,7 @@ export class DoseCalculatorComponent {
   readonly medicationName = signal('Dipirona Gotas (500mg/mL)');
   readonly doseMg = signal(95);
   temperature = 38.2;
-  reason = 'Pico febril / Desconforto gengival';
+  reason = 'Febre (≥ 37,5 °C) / Nascimento dos dentes de leite';
 
   readonly weightKg = computed(() => +(this.babyStore.activeBaby().currentWeightGrams / 1000).toFixed(2));
   readonly maxSafeMg = computed(() => {

@@ -27,14 +27,14 @@ import { HungerCuesGuideComponent } from './components/hunger-cues-guide/hunger-
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
         <h3 class="section-title" style="margin-bottom: 0;">
           <span aria-hidden="true">🍽️</span>
-          <span>Últimas Refeições e Mamadas Registradas</span>
+          <span>Registro de Aleitamento Materno e Alimentação Complementar</span>
         </h3>
         <span class="badge badge-feeding">{{ feedingEvents().length }} registro(s)</span>
       </div>
 
       @if (feedingEvents().length === 0) {
         <div class="card-elevated" style="text-align: center; padding: 1.25rem; color: var(--text-secondary); font-size: 0.86rem;">
-          Nenhuma refeição ou mamada registrada ainda para este bebê.
+          Nenhuma refeição ou mamada registrada ainda para esta criança.
         </div>
       } @else {
         <div style="display: flex; flex-direction: column; gap: 0.65rem;">
@@ -54,19 +54,19 @@ import { HungerCuesGuideComponent } from './components/hunger-cues-guide/hunger-
                 <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.35rem; display: flex; flex-direction: column; gap: 0.2rem;">
                   <div>
                     <strong>Aceitação:</strong> {{ formatAcceptance(solids.acceptanceLevel) }} •
-                    <strong>Método:</strong> {{ formatAutonomy(solids.eatingAutonomy) }}
+                    <strong>Consistência / Forma:</strong> {{ formatAutonomy(solids.eatingAutonomy) }}
                   </div>
                   @if (solids.foodGroups.fruitsAndVegetables.length > 0) {
-                    <div>🥦 <strong>Frutas/Hortaliças:</strong> {{ solids.foodGroups.fruitsAndVegetables.join(', ') }}</div>
+                    <div>🥦 <strong>Grupo dos legumes, verduras e frutas:</strong> {{ solids.foodGroups.fruitsAndVegetables.join(', ') }}</div>
                   }
                   @if (solids.foodGroups.cerealsAndTubers.length > 0) {
-                    <div>🥔 <strong>Cereais/Tubérculos:</strong> {{ solids.foodGroups.cerealsAndTubers.join(', ') }}</div>
+                    <div>🥔 <strong>Grupo dos cereais / raízes e tubérculos:</strong> {{ solids.foodGroups.cerealsAndTubers.join(', ') }}</div>
                   }
                   @if (solids.foodGroups.legumes.length > 0) {
-                    <div>🫘 <strong>Leguminosas:</strong> {{ solids.foodGroups.legumes.join(', ') }}</div>
+                    <div>🫘 <strong>Grupo dos feijões (leguminosas):</strong> {{ solids.foodGroups.legumes.join(', ') }}</div>
                   }
                   @if (solids.foodGroups.animalProtein.length > 0) {
-                    <div>🥩 <strong>Proteínas Animais:</strong> {{ solids.foodGroups.animalProtein.join(', ') }}</div>
+                    <div>🥩 <strong>Grupo das carnes e ovos:</strong> {{ solids.foodGroups.animalProtein.join(', ') }}</div>
                   }
                 </div>
               } @else if (ev.details.feedingType === 'Breast' && ev.details.breastfeedingDetails) {
@@ -109,7 +109,7 @@ export class FeedingTrackerComponent {
         return '🤱';
       case 'Formula':
       case 'ExpressedMilk':
-        return '🍼';
+        return '🥛';
       case 'Solids':
         return '🍲';
       default:
@@ -120,30 +120,30 @@ export class FeedingTrackerComponent {
   getFeedingTitle(ev: RoutineEventModel): string {
     switch (ev.details.feedingType) {
       case 'Breast':
-        return `Amamentação no Peito (${ev.durationMinutes ?? 1} min)`;
+        return `Leite Materno no Peito (${ev.durationMinutes ?? 1} min)`;
       case 'Formula':
-        return `Fórmula Infantil (${ev.details.formulaVolumeMl ?? 0} mL)`;
+        return `Leite Artificial (${ev.details.formulaVolumeMl ?? 0} mL)`;
       case 'ExpressedMilk':
-        return `Leite (${ev.details.formulaVolumeMl ?? 0} mL)`;
+        return `Leite Materno Extraído (${ev.details.formulaVolumeMl ?? 0} mL)`;
       case 'Solids':
-        return `Refeição Sólida • ${this.formatMealType(ev.details.solidsDetails?.mealType)}`;
+        return `Alimentação Complementar • ${this.formatMealType(ev.details.solidsDetails?.mealType)}`;
       default:
-        return 'Refeição / Nutrição';
+        return 'Refeição / Alimentação';
     }
   }
 
   formatMealType(mealType?: string): string {
     switch (mealType) {
       case 'Breakfast':
-        return 'Café da Manhã';
+        return 'Café da manhã';
       case 'MorningSnack':
-        return 'Lanche Matutino';
+        return 'Lanche da manhã';
       case 'Lunch':
-        return 'Almoço (4 Grupos)';
+        return 'Almoço (Quadro 1 — pág. 31)';
       case 'AfternoonSnack':
-        return 'Lanche Vespertino';
+        return 'Lanche da tarde';
       case 'Dinner':
-        return 'Jantar (4 Grupos)';
+        return 'Jantar (Quadro 1 — pág. 31)';
       default:
         return mealType ?? 'Refeição';
     }
@@ -158,7 +158,7 @@ export class FeedingTrackerComponent {
       case 'Low':
         return 'Baixa';
       case 'Refused':
-        return 'Recusa';
+        return 'Recusou (oferecer novamente em outras refeições — 8 a 10 tentativas)';
       default:
         return level ?? '-';
     }
@@ -167,11 +167,11 @@ export class FeedingTrackerComponent {
   formatAutonomy(autonomy?: string): string {
     switch (autonomy) {
       case 'BLW_Assisted':
-        return 'BLW Assistido';
+        return 'Comer alguns alimentos com as mãos + incentivo aos talheres';
       case 'PureeSpoon':
-        return 'Amassado / Colher';
+        return 'Comida amassada / Uso de talheres';
       case 'FamilyTable':
-        return 'Mesa da Família';
+        return 'Mesma comida da família à mesa';
       default:
         return autonomy ?? '-';
     }
