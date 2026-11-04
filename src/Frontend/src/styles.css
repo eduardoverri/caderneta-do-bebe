@@ -65,6 +65,14 @@
   --cat-milestone-btn-bg: light-dark(#F7E4BA, #F59E0B);
   --cat-milestone-btn-text: light-dark(#5E420E, #0A0B0E);
 
+  /* Escala de Espaçamento (ritmo vertical consistente) */
+  --space-1: 0.375rem;
+  --space-2: 0.625rem;
+  --space-3: 0.875rem;
+  --space-4: 1.125rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
   --radius-lg: 18px;
   --radius-xl: 24px;
   --shadow-card: light-dark(0 4px 18px -4px rgba(74, 67, 56, 0.07),
@@ -216,17 +224,24 @@ textarea {
   width: 100%;
   max-width: 1140px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: var(--space-5) var(--space-4);
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: var(--space-5);
 }
+
+@media (min-width: 768px) {
+  .pwa-content {
+    padding: var(--space-6) var(--space-5);
+  }
+}
+
 
 /* ==========================================================================
    Separação Visual: Ações/Dados (Primário) vs. Informativos (Sob Demanda)
    ========================================================================== */
 .info-disclosure {
-  margin-top: 0.75rem;
+  margin-top: var(--space-4);
   border-radius: 12px;
   border: 1px dashed var(--border-strong);
   background: var(--bg-surface-elevated);
@@ -237,7 +252,7 @@ textarea {
 .info-disclosure>summary {
   list-style: none;
   cursor: pointer;
-  padding: 0.55rem 0.85rem;
+  padding: var(--space-3) var(--space-4);
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--text-secondary);
@@ -273,18 +288,25 @@ textarea {
   content: '▴ Ocultar';
 }
 
-.info-disclosure-body {
-  padding: 0.75rem 0.9rem;
+.info-disclosure-body,
+.disclosure-body {
+  padding: var(--space-4);
   font-size: 0.82rem;
   color: var(--text-secondary);
   line-height: 1.55;
 }
 
-.info-disclosure-body ul {
+.info-disclosure-body ul,
+.disclosure-body ul {
   padding-left: 1.15rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: var(--space-1);
+}
+
+.info-disclosure-body > * + *,
+.disclosure-body > * + * {
+  margin-top: var(--space-3);
 }
 
 /* Acordeão de Seções de Formulário (Evita múltiplos formulários longos abertos) */
@@ -298,13 +320,13 @@ textarea {
 }
 
 .section-accordion+.section-accordion {
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
 .section-accordion>summary {
   list-style: none;
   cursor: pointer;
-  padding: 0.9rem 1.1rem;
+  padding: var(--space-4) var(--space-5);
   font-size: 0.96rem;
   font-weight: 800;
   display: flex;
@@ -343,27 +365,38 @@ textarea {
   border-color: var(--cat-sleep);
 }
 
-.section-accordion-body {
-  padding: 1rem 1.1rem;
+.section-accordion-body,
+.accordion-body {
+  padding: var(--space-5);
+}
+
+.section-accordion-body > * + *,
+.accordion-body > * + * {
+  margin-top: var(--space-4);
+}
+
+/* Disclosures dentro de linhas flex/grid não devem empurrar o alinhamento */
+:is([class*="grid-"], [style*="display: flex"], [style*="display:flex"]) > .info-disclosure {
+  margin-top: 0;
 }
 
 /* Barra Segmentada para alternar entre "Ação/Registro" e "Histórico/Dados" */
 .segmented-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  padding: 0.35rem;
+  gap: var(--space-1);
+  padding: var(--space-1);
   background: var(--bg-surface-elevated);
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
-  margin-bottom: 0.85rem;
+  margin-bottom: var(--space-5);
 }
 
 .segmented-btn {
   flex: 1;
   min-width: 135px;
-  min-height: 38px;
-  padding: 0.4rem 0.75rem;
+  min-height: 42px;
+  padding: var(--space-2) var(--space-3);
   border-radius: 10px;
   border: 1px solid transparent;
   background: transparent;
@@ -427,7 +460,7 @@ textarea {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 1rem;
+  padding: var(--space-5);
   box-shadow: var(--shadow-card);
 }
 
@@ -435,7 +468,17 @@ textarea {
   background-color: var(--bg-surface-elevated);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 0.8rem 0.9rem;
+  padding: var(--space-4);
+}
+
+/* Ritmo vertical entre blocos filhos (somente em contêineres de fluxo normal;
+   linhas flex/grid já usam gap e seriam desalinhadas por margin-top) */
+:is(.card, .card-elevated):not([class*="grid-"]):not([style*="display: flex"]):not([style*="display:flex"]):not([style*="display: grid"]):not([style*="display:grid"]) > * + * {
+  margin-top: var(--space-3);
+}
+
+:not([class*="grid-"]):not([style*="display: flex"]):not([style*="display:flex"]):not([style*="display: grid"]):not([style*="display:grid"]) > :is(.card, .section-accordion) + :is(.card, .section-accordion) {
+  margin-top: var(--space-4);
 }
 
 .grid-2,
@@ -443,7 +486,39 @@ textarea {
 .grid-4 {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.8rem;
+  gap: var(--space-3);
+}
+
+@media (min-width: 640px) {
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    gap: var(--space-4);
+  }
+}
+
+/* Rótulos de formulário afastados dos campos e das demais linhas */
+label + input,
+label + select,
+label + textarea,
+label + div {
+  margin-top: var(--space-1);
+}
+
+label:has(+ input),
+label:has(+ select),
+label:has(+ textarea) {
+  display: block;
+}
+
+h3 + p,
+h4 + p {
+  margin-top: var(--space-1);
+}
+
+table th,
+table td {
+  padding-block: var(--space-2) !important;
 }
 
 @media (min-width: 640px) {
@@ -579,8 +654,8 @@ textarea {
   font-weight: 800;
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  margin-bottom: 0.55rem;
+  gap: 0.5rem;
+  margin-bottom: var(--space-3);
 }
 
 .mono-timer {

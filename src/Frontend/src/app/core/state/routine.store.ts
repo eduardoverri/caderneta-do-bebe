@@ -462,13 +462,6 @@ export class RoutineStore {
 
       this.isBackendConnected.set(true);
 
-      if (notifyInfo) {
-        this.popupAlert.info(
-          'Caderneta do Bebê e linha do tempo sincronizadas com sucesso.',
-          'Dados Carregados'
-        );
-      }
-
       if (timeline.isLowHydrationAlert && timeline.hydrationStatusMessage && notifyInfo) {
         this.popupAlert.warning(
           timeline.hydrationStatusMessage,

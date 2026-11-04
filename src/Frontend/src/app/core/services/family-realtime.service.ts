@@ -1,10 +1,8 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
-import { PopupAlertService } from './popup-alert.service';
 
 @Injectable({ providedIn: 'root' })
 export class FamilyRealtimeService {
-  private readonly popupAlert = inject(PopupAlertService);
   private hubConnection?: signalR.HubConnection;
   readonly isConnected = signal<boolean>(false);
   readonly lastRealtimeNotification = signal<string | null>(null);
@@ -22,7 +20,6 @@ export class FamilyRealtimeService {
       this.hubConnection.on('EventRecorded', () => {
         const msg = 'Um novo registro da rotina foi sincronizado em tempo real.';
         this.lastRealtimeNotification.set(msg);
-        this.popupAlert.info(msg, 'Sincronização em Tempo Real');
         onEventRecorded();
       });
 

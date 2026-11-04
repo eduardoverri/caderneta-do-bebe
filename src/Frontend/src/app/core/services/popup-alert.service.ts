@@ -33,19 +33,19 @@ export class PopupAlertService {
   });
 
   success(message: string, title = 'Sucesso', options?: PopupAlertOptions): void {
-    this.show('success', title, message, 4000, options);
+    this.show('success', title, message, 8000, options);
   }
 
   error(message: string, title = 'Erro', options?: PopupAlertOptions): void {
-    this.show('error', title, message, 7000, options);
+    this.show('error', title, message, 14000, options);
   }
 
   warning(message: string, title = 'Aviso', options?: PopupAlertOptions): void {
-    this.show('warning', title, message, 6000, options);
+    this.show('warning', title, message, 12000, options);
   }
 
   info(message: string, title = 'Informação', options?: PopupAlertOptions): void {
-    this.show('info', title, message, 3500, options);
+    this.show('info', title, message, 7000, options);
   }
 
   incompleteForm(
@@ -59,7 +59,7 @@ export class PopupAlertService {
     type: PopupAlertType,
     title: string,
     message: string,
-    durationMs = 4500,
+    durationMs = 9000,
     options?: PopupAlertOptions
   ): void {
     const targetBabyId = options?.babyId ?? this.babyStore.selectedBabyId();
