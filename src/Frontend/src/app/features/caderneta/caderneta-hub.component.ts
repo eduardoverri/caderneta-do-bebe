@@ -1047,7 +1047,6 @@ type CadernetaSectionTab =
               <p style="font-size: 0.83rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
                 Toda criança nascida com menos de 37 semanas é pré-termo. O contato pele a pele na Posição Canguru aquece o bebê, fortalece o vínculo afetivo e estimula a amamentação. Avaliada pela <strong>Idade Corrigida</strong> até os 2 anos.
               </p>
-              <img src="imagens/p022_pag020_metodo_canguru.jpg" alt="Método Canguru p. 20" style="width: 100%; max-width: 280px; border-radius: 8px; border: 1px solid var(--border-subtle);" />
             </div>
 
             <div style="padding: 0.85rem; background: var(--bg-soft); border-radius: 12px;">
