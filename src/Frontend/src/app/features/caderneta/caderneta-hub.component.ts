@@ -1,6 +1,7 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
+import { LoadingOverlayService } from '../../core/services/loading-overlay.service';
 import {
   AddressChangeRecord,
   AgendaEntryRecord,
@@ -1070,9 +1071,10 @@ type CadernetaSectionTab =
     </div>
   `
 })
-export class CadernetaHubComponent {
+export class CadernetaHubComponent implements OnInit {
   readonly babyStore = inject(BabyStore);
   readonly routineStore = inject(RoutineStore);
+  private readonly loadingOverlay = inject(LoadingOverlayService);
 
   readonly subTab = signal<CadernetaSectionTab>('identificacao');
   readonly selectedConsultationCode = signal<string>('1_SEMANA');
@@ -1230,6 +1232,16 @@ export class CadernetaHubComponent {
   generalNotes: CadernetaNoteRecord[] = [];
   newGeneralNoteText = '';
   newGeneralNoteAuthor = 'Mãe/Pai';
+
+  async ngOnInit(): Promise<void> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (babyId) {
+      await this.loadingOverlay.runWithLoading(
+        () => this.routineStore.refreshCaderneta(babyId),
+        'Carregando dados da Caderneta da Criança...'
+      );
+    }
+  }
 
   constructor() {
     effect(() => {

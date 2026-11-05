@@ -1,6 +1,8 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RoutineStore } from '../../core/state/routine.store';
+import { BabyStore } from '../../core/state/baby.store';
+import { LoadingOverlayService } from '../../core/services/loading-overlay.service';
 import { QuickCodePadComponent } from './components/quick-code-pad/quick-code-pad.component';
 import { StoolVisualPickerComponent } from './components/stool-visual-picker/stool-visual-picker.component';
 import { OfficialReferenceComponent } from '../../shared/components/official-reference/official-reference.component';
@@ -72,8 +74,10 @@ import { OfficialReferenceComponent } from '../../shared/components/official-ref
     </div>
   `
 })
-export class DiapersTrackerComponent {
+export class DiapersTrackerComponent implements OnInit {
   readonly store = inject(RoutineStore);
+  private readonly babyStore = inject(BabyStore);
+  private readonly loadingOverlay = inject(LoadingOverlayService);
 
   state = 'M';
   volume = 2;
@@ -81,6 +85,16 @@ export class DiapersTrackerComponent {
   stoolConsistency = 'MoldedPastous';
   barrierCreamApplied = true;
   hasBlood = false;
+
+  async ngOnInit(): Promise<void> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (babyId) {
+      await this.loadingOverlay.runWithLoading(
+        () => this.store.refreshDiapers(babyId),
+        'Carregando registros de fraldas e hidratação...'
+      );
+    }
+  }
 
   async saveDiaper(): Promise<void> {
     await this.store.logQuickDiaper({

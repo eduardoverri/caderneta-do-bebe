@@ -1,7 +1,8 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { BabyStore } from '../../core/state/baby.store';
 import { RoutineStore } from '../../core/state/routine.store';
+import { LoadingOverlayService } from '../../core/services/loading-overlay.service';
 import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
 import { DurationPipe } from '../../shared/pipes/duration.pipe';
 import { OfficialReferenceComponent } from '../../shared/components/official-reference/official-reference.component';
@@ -110,9 +111,20 @@ import { OfficialReferenceComponent } from '../../shared/components/official-ref
     }
   `
 })
-export class PediatricReportComponent {
+export class PediatricReportComponent implements OnInit {
   readonly babyStore = inject(BabyStore);
   readonly routineStore = inject(RoutineStore);
+  private readonly loadingOverlay = inject(LoadingOverlayService);
+
+  async ngOnInit(): Promise<void> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (babyId) {
+      await this.loadingOverlay.runWithLoading(
+        () => this.routineStore.refreshReport(babyId),
+        'Carregando resumo para consulta pediátrica...'
+      );
+    }
+  }
 
   classifyZScore(z: number): string {
     if (z < -3) return 'Peso muito baixo';

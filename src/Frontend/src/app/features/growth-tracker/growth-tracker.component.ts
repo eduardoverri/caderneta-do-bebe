@@ -4,6 +4,7 @@ import { DatePipe } from '@angular/common';
 import { BabyStore, GrowthLog } from '../../core/state/baby.store';
 import { RoutineStore } from '../../core/state/routine.store';
 import { PopupAlertService } from '../../core/services/popup-alert.service';
+import { LoadingOverlayService } from '../../core/services/loading-overlay.service';
 import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
 import { OfficialReferenceComponent } from '../../shared/components/official-reference/official-reference.component';
 
@@ -273,6 +274,7 @@ export class GrowthTrackerComponent implements OnInit {
   readonly babyStore = inject(BabyStore);
   readonly routineStore = inject(RoutineStore);
   private readonly popupAlert = inject(PopupAlertService);
+  private readonly loadingOverlay = inject(LoadingOverlayService);
 
   readonly activeTab = signal<'HISTORY' | 'FORM' | 'CHARTS'>('HISTORY');
   readonly editingGrowthId = signal<string | null>(null);
@@ -319,7 +321,14 @@ export class GrowthTrackerComponent implements OnInit {
     }, { allowSignalWrites: true });
   }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (babyId) {
+      await this.loadingOverlay.runWithLoading(
+        () => this.routineStore.refreshGrowth(babyId),
+        'Carregando curvas e medidas de crescimento...'
+      );
+    }
     const b = this.babyStore.activeBaby();
     if (b && b.id) {
       this.weightGrams.set(b.currentWeightGrams || 3200);

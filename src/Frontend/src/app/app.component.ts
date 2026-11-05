@@ -10,6 +10,8 @@ import { PopupAlertService, PopupAlertType } from './core/services/popup-alert.s
 import { BabyAgePipe } from './shared/pipes/baby-age.pipe';
 import { NightModeToggleComponent } from './shared/components/night-mode-toggle/night-mode-toggle.component';
 import { AlertBannerComponent } from './shared/components/alert-banner/alert-banner.component';
+import { LoadingOverlayComponent } from './shared/components/loading-overlay/loading-overlay.component';
+import { LoadingOverlayService } from './core/services/loading-overlay.service';
 import { QuickActionBarComponent } from './shared/components/quick-action-bar/quick-action-bar.component';
 import { GoogleLoginComponent } from './features/auth/google-login.component';
 import { ChildrenManagerComponent } from './features/children/children-manager.component';
@@ -32,6 +34,7 @@ import { PediatricReportComponent } from './features/reports/pediatric-report.co
     BabyAgePipe,
     NightModeToggleComponent,
     AlertBannerComponent,
+    LoadingOverlayComponent,
     QuickActionBarComponent,
     GoogleLoginComponent,
     ChildrenManagerComponent,
@@ -47,6 +50,9 @@ import { PediatricReportComponent } from './features/reports/pediatric-report.co
   ],
   template: `
     <div class="pwa-shell">
+      <!-- Loading Overlay Bloqueando a Tela com Informações de Carga de Dados -->
+      <app-loading-overlay />
+
       <!-- Stack Global de Alertas Pop-up (Sucesso, Erro, Aviso e Informação) -->
       <app-alert-banner />
 
@@ -289,6 +295,7 @@ export class AppComponent implements OnInit {
   readonly offlineSync = inject(OfflineSyncService);
   readonly realtime = inject(FamilyRealtimeService);
   readonly popupAlert = inject(PopupAlertService);
+  readonly loadingOverlay = inject(LoadingOverlayService);
 
   readonly activeTab = signal<string>('dashboard');
   readonly menuOpen = signal<boolean>(false);
@@ -309,17 +316,60 @@ export class AppComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     if (this.authService.isAuthenticated()) {
-      const valid = await this.authService.verifyExistingSession();
-      if (valid) {
-        await this.routineStore.initialize();
-      }
+      await this.loadingOverlay.runWithLoading(async () => {
+        const valid = await this.authService.verifyExistingSession();
+        if (valid) {
+          await this.routineStore.initialize();
+        }
+      }, 'Carregando dados iniciais do bebê...');
     }
   }
 
-  selectTab(tabId: string): void {
+  async selectTab(tabId: string): Promise<void> {
+    const isCurrent = this.activeTab() === tabId;
     this.activeTab.set(tabId);
     this.menuOpen.set(false);
     this.alertsOpen.set(false);
+
+    if (isCurrent && this.authService.isAuthenticated()) {
+      await this.refreshTabContent(tabId);
+    }
+  }
+
+  private async refreshTabContent(tabId: string): Promise<void> {
+    const babyId = this.babyStore.selectedBabyId();
+    switch (tabId) {
+      case 'dashboard':
+        if (babyId) await this.loadingOverlay.runWithLoading(() => this.routineStore.refreshDashboard(babyId), 'Carregando rotina diária do bebê...');
+        break;
+      case 'caderneta':
+        if (babyId) await this.loadingOverlay.runWithLoading(() => this.routineStore.refreshCaderneta(babyId), 'Carregando dados da Caderneta da Criança...');
+        break;
+      case 'sleep':
+        if (babyId) await this.loadingOverlay.runWithLoading(() => this.routineStore.refreshSleep(babyId), 'Carregando dados de sono do bebê...');
+        break;
+      case 'feeding':
+        if (babyId) await this.loadingOverlay.runWithLoading(() => this.routineStore.refreshFeeding(babyId), 'Carregando registros de alimentação e alérgenos...');
+        break;
+      case 'diapers':
+        if (babyId) await this.loadingOverlay.runWithLoading(() => this.routineStore.refreshDiapers(babyId), 'Carregando registros de fraldas e hidratação...');
+        break;
+      case 'health':
+        if (babyId) await this.loadingOverlay.runWithLoading(() => this.routineStore.refreshHealth(babyId), 'Carregando carteira de vacinas e saúde...');
+        break;
+      case 'milestones':
+        if (babyId) await this.loadingOverlay.runWithLoading(() => this.routineStore.refreshMilestones(babyId), 'Carregando marcos do desenvolvimento...');
+        break;
+      case 'growth':
+        if (babyId) await this.loadingOverlay.runWithLoading(() => this.routineStore.refreshGrowth(babyId), 'Carregando curvas e medidas de crescimento...');
+        break;
+      case 'report':
+        if (babyId) await this.loadingOverlay.runWithLoading(() => this.routineStore.refreshReport(babyId), 'Carregando resumo para consulta pediátrica...');
+        break;
+      case 'children':
+        await this.loadingOverlay.runWithLoading(() => this.routineStore.refreshChildren(), 'Carregando cadastro das crianças...');
+        break;
+    }
   }
 
   toggleAlertsPanel(): void {
@@ -365,13 +415,17 @@ export class AppComponent implements OnInit {
   }
 
   async onUserAuthenticated(): Promise<void> {
-    await this.routineStore.initialize();
+    await this.loadingOverlay.runWithLoading(async () => {
+      await this.routineStore.initialize();
+    }, 'Carregando dados da rotina...');
     this.activeTab.set(this.babyStore.hasBabies() ? 'dashboard' : 'children');
   }
 
   async onBabyChange(babyId: string): Promise<void> {
-    this.babyStore.selectBaby(babyId);
-    await this.routineStore.refreshAllForBaby(babyId, true);
+    await this.loadingOverlay.runWithLoading(async () => {
+      this.babyStore.selectBaby(babyId);
+      await this.routineStore.refreshAllForBaby(babyId, true);
+    }, `Carregando dados de ${this.babyStore.activeBaby()?.name || 'bebê'}...`);
   }
 
   switchGoogleAccount(): void {

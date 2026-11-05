@@ -1,7 +1,10 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { DoseCalculatorComponent } from './components/dose-calculator/dose-calculator.component';
 import { IntervalCountdownComponent } from './components/interval-countdown/interval-countdown.component';
 import { VaccineCardComponent } from './components/vaccine-card/vaccine-card.component';
+import { BabyStore } from '../../core/state/baby.store';
+import { RoutineStore } from '../../core/state/routine.store';
+import { LoadingOverlayService } from '../../core/services/loading-overlay.service';
 
 @Component({
   selector: 'app-health-medications',
@@ -33,6 +36,20 @@ import { VaccineCardComponent } from './components/vaccine-card/vaccine-card.com
     }
   `
 })
-export class HealthComponent {
+export class HealthComponent implements OnInit {
+  private readonly babyStore = inject(BabyStore);
+  private readonly routineStore = inject(RoutineStore);
+  private readonly loadingOverlay = inject(LoadingOverlayService);
+
   readonly activeView = signal<'VACCINES' | 'MEDICATIONS'>('VACCINES');
+
+  async ngOnInit(): Promise<void> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (babyId) {
+      await this.loadingOverlay.runWithLoading(
+        () => this.routineStore.refreshHealth(babyId),
+        'Carregando carteira de vacinas e saúde...'
+      );
+    }
+  }
 }

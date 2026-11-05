@@ -1,10 +1,11 @@
-import { Component, EventEmitter, Output, inject } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { AuthService } from '../../core/auth/auth.service';
 import { BabyStore } from '../../core/state/baby.store';
 import { RoutineStore } from '../../core/state/routine.store';
 import { PopupAlertService } from '../../core/services/popup-alert.service';
+import { LoadingOverlayService } from '../../core/services/loading-overlay.service';
 import { BabyAgePipe } from '../../shared/pipes/baby-age.pipe';
 import { OfficialReferenceComponent } from '../../shared/components/official-reference/official-reference.component';
 
@@ -167,11 +168,12 @@ import { OfficialReferenceComponent } from '../../shared/components/official-ref
     </div>
   `
 })
-export class ChildrenManagerComponent {
+export class ChildrenManagerComponent implements OnInit {
   readonly authService = inject(AuthService);
   readonly babyStore = inject(BabyStore);
   readonly routineStore = inject(RoutineStore);
   private readonly popupAlert = inject(PopupAlertService);
+  private readonly loadingOverlay = inject(LoadingOverlayService);
 
   @Output() readonly childSelected = new EventEmitter<void>();
 
@@ -185,9 +187,20 @@ export class ChildrenManagerComponent {
   headCircumferenceCm = 35;
   bloodType = 'O+';
 
+  async ngOnInit(): Promise<void> {
+    if (this.authService.isAuthenticated()) {
+      await this.loadingOverlay.runWithLoading(
+        () => this.routineStore.loadFamilyAndBabies(),
+        'Carregando cadastro das crianças...'
+      );
+    }
+  }
+
   async selectChild(babyId: string): Promise<void> {
-    this.babyStore.selectBaby(babyId);
-    await this.routineStore.refreshAllForBaby(babyId, true);
+    await this.loadingOverlay.runWithLoading(async () => {
+      this.babyStore.selectBaby(babyId);
+      await this.routineStore.refreshAllForBaby(babyId, true);
+    }, `Carregando dados de ${this.babyStore.activeBaby()?.name || 'criança'}...`);
     this.childSelected.emit();
   }
 

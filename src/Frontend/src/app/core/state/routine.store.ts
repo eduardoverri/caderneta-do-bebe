@@ -196,6 +196,10 @@ export class RoutineStore {
   readonly allergenTrials = signal<AllergenTrialItem[]>([]);
   readonly milestones = signal<MilestoneItem[]>([]);
 
+  private inFlightFamilyLoad: Promise<void> | null = null;
+  private readonly inFlightRefreshAll = new Map<string, Promise<void>>();
+  private readonly inFlightSectionLoads = new Map<string, Promise<void>>();
+
   async initialize(): Promise<void> {
     await this.loadFamilyAndBabies();
     const babyId = this.babyStore.selectedBabyId();
@@ -217,6 +221,19 @@ export class RoutineStore {
   }
 
   async loadFamilyAndBabies(): Promise<void> {
+    if (this.inFlightFamilyLoad) {
+      return this.inFlightFamilyLoad;
+    }
+    const task = this.executeLoadFamilyAndBabies();
+    this.inFlightFamilyLoad = task;
+    try {
+      await task;
+    } finally {
+      this.inFlightFamilyLoad = null;
+    }
+  }
+
+  private async executeLoadFamilyAndBabies(): Promise<void> {
     const userId = this.babyStore.currentUserId();
     const userEmail = this.babyStore.currentUserEmail();
     if (!userId && !userEmail) return;
@@ -389,6 +406,21 @@ export class RoutineStore {
       return;
     }
 
+    const inFlight = this.inFlightRefreshAll.get(babyId);
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const task = this.executeRefreshAllForBaby(babyId, notifyInfo, isRetryAfterRestore);
+    this.inFlightRefreshAll.set(babyId, task);
+    try {
+      await task;
+    } finally {
+      this.inFlightRefreshAll.delete(babyId);
+    }
+  }
+
+  private async executeRefreshAllForBaby(babyId: string, notifyInfo = false, isRetryAfterRestore = false): Promise<void> {
     const cachedEvents = this.getLocalEvents(babyId);
     const cachedTrials = this.getLocalAllergenTrials(babyId);
     const cachedMilestones = this.getLocalMilestones(babyId);
@@ -481,6 +513,228 @@ export class RoutineStore {
       this.allergenTrials.set(cachedTrials);
       this.milestones.set(cachedMilestones);
     }
+  }
+
+  /**
+   * Cargas de dados iniciais direcionadas por componente
+   */
+  async refreshBabyFull(babyId: string): Promise<void> {
+    if (!babyId) return;
+    const key = `babyFull:${babyId}`;
+    if (this.inFlightSectionLoads.has(key)) return this.inFlightSectionLoads.get(key);
+
+    const task = (async () => {
+      try {
+        const babyFull = await firstValueFrom(
+          this.http.get<BabyModel>(`${this.apiBaseUrl}/babies/${babyId}`)
+        );
+        if (babyFull) {
+          this.babyStore.updateBabyInCurrentUser(babyFull);
+        }
+        this.isBackendConnected.set(true);
+      } catch {
+        this.isBackendConnected.set(false);
+      }
+    })();
+
+    this.inFlightSectionLoads.set(key, task);
+    try {
+      await task;
+    } finally {
+      this.inFlightSectionLoads.delete(key);
+    }
+  }
+
+  async refreshTimeline(babyId: string): Promise<void> {
+    if (!babyId) return;
+    const key = `timeline:${babyId}`;
+    if (this.inFlightSectionLoads.has(key)) return this.inFlightSectionLoads.get(key);
+
+    const cachedEvents = this.getLocalEvents(babyId);
+    const task = (async () => {
+      try {
+        const timeline = await firstValueFrom(
+          this.http.get<{
+            totalSleepMinutes: number;
+            napCount: number;
+            expectedNaps: number;
+            totalDiaperChanges: number;
+            urineOrMixedCount: number;
+            stoolOrMixedCount: number;
+            isLowHydrationAlert: boolean;
+            hydrationStatusMessage: string;
+            lastFeedingSummary: string;
+            lastDiaperSummary: string;
+            events: RoutineEventModel[];
+          }>(`${this.apiBaseUrl}/babies/${babyId}/timeline`)
+        );
+        const mergedEvents = this.mergeEvents(timeline.events ?? [], cachedEvents);
+        this.events.set(mergedEvents);
+        this.saveLocalEvents(babyId, mergedEvents);
+
+        this.totalSleepMinutes.set(timeline.totalSleepMinutes);
+        this.napCount.set(timeline.napCount);
+        this.expectedNaps.set(timeline.expectedNaps);
+        this.totalDiaperChanges.set(timeline.totalDiaperChanges);
+        this.urineOrMixedCount.set(timeline.urineOrMixedCount);
+        this.stoolOrMixedCount.set(timeline.stoolOrMixedCount);
+        this.isLowHydrationAlert.set(timeline.isLowHydrationAlert);
+        this.hydrationStatusMessage.set(timeline.hydrationStatusMessage);
+        this.lastFeedingSummary.set(timeline.lastFeedingSummary);
+        this.lastDiaperSummary.set(timeline.lastDiaperSummary);
+        this.isBackendConnected.set(true);
+      } catch {
+        this.isBackendConnected.set(false);
+        if (cachedEvents.length > 0 && this.events().length === 0) {
+          this.events.set(cachedEvents);
+        }
+      }
+    })();
+
+    this.inFlightSectionLoads.set(key, task);
+    try {
+      await task;
+    } finally {
+      this.inFlightSectionLoads.delete(key);
+    }
+  }
+
+  async refreshWakeWindow(babyId: string): Promise<void> {
+    if (!babyId) return;
+    const key = `wakeWindow:${babyId}`;
+    if (this.inFlightSectionLoads.has(key)) return this.inFlightSectionLoads.get(key);
+
+    const task = (async () => {
+      try {
+        const [wakeRes, transition] = await Promise.all([
+          firstValueFrom(
+            this.http.get<{ lastWakeTimeUtc: string; status: WakeWindowStatusDto }>(
+              `${this.apiBaseUrl}/babies/${babyId}/sleep/wake-window`
+            )
+          ),
+          firstValueFrom(
+            this.http.get<NapTransitionReadinessDto>(
+              `${this.apiBaseUrl}/babies/${babyId}/sleep/transition-readiness`
+            )
+          )
+        ]);
+        this.wakeWindowStatus.set(wakeRes.status);
+        this.wakeTimer.configureFromBackend(
+          wakeRes.lastWakeTimeUtc,
+          wakeRes.status.minWindowMinutes,
+          wakeRes.status.maxWindowMinutes
+        );
+        this.napTransition.set(transition);
+        this.isBackendConnected.set(true);
+      } catch {
+        this.isBackendConnected.set(false);
+      }
+    })();
+
+    this.inFlightSectionLoads.set(key, task);
+    try {
+      await task;
+    } finally {
+      this.inFlightSectionLoads.delete(key);
+    }
+  }
+
+  async refreshAllergenTrials(babyId: string): Promise<void> {
+    if (!babyId) return;
+    const key = `allergenTrials:${babyId}`;
+    if (this.inFlightSectionLoads.has(key)) return this.inFlightSectionLoads.get(key);
+
+    const cachedTrials = this.getLocalAllergenTrials(babyId);
+    const task = (async () => {
+      try {
+        const trials = await firstValueFrom(
+          this.http.get<AllergenTrialItem[]>(`${this.apiBaseUrl}/babies/${babyId}/feeding/allergen-trials`)
+        );
+        const mergedTrials = this.mergeAllergenTrials(trials ?? [], cachedTrials);
+        this.allergenTrials.set(mergedTrials);
+        this.saveLocalAllergenTrials(babyId, mergedTrials);
+        this.isBackendConnected.set(true);
+      } catch {
+        this.isBackendConnected.set(false);
+        if (cachedTrials.length > 0 && this.allergenTrials().length === 0) {
+          this.allergenTrials.set(cachedTrials);
+        }
+      }
+    })();
+
+    this.inFlightSectionLoads.set(key, task);
+    try {
+      await task;
+    } finally {
+      this.inFlightSectionLoads.delete(key);
+    }
+  }
+
+  async refreshMilestones(babyId: string): Promise<void> {
+    if (!babyId) return;
+    const key = `milestones:${babyId}`;
+    if (this.inFlightSectionLoads.has(key)) return this.inFlightSectionLoads.get(key);
+
+    const cachedMilestones = this.getLocalMilestones(babyId);
+    const task = (async () => {
+      try {
+        const milestonesRes = await firstValueFrom(
+          this.http.get<{ milestones: MilestoneItem[] }>(`${this.apiBaseUrl}/babies/${babyId}/milestones`)
+        );
+        const mergedMilestones = this.mergeMilestones(milestonesRes.milestones ?? [], cachedMilestones);
+        this.milestones.set(mergedMilestones);
+        this.saveLocalMilestones(babyId, mergedMilestones);
+        this.isBackendConnected.set(true);
+      } catch {
+        this.isBackendConnected.set(false);
+        if (cachedMilestones.length > 0 && this.milestones().length === 0) {
+          this.milestones.set(cachedMilestones);
+        }
+      }
+    })();
+
+    this.inFlightSectionLoads.set(key, task);
+    try {
+      await task;
+    } finally {
+      this.inFlightSectionLoads.delete(key);
+    }
+  }
+
+  async refreshDashboard(babyId: string): Promise<void> {
+    await Promise.all([this.refreshTimeline(babyId), this.refreshWakeWindow(babyId)]);
+  }
+
+  async refreshCaderneta(babyId: string): Promise<void> {
+    await this.refreshBabyFull(babyId);
+  }
+
+  async refreshSleep(babyId: string): Promise<void> {
+    await Promise.all([this.refreshWakeWindow(babyId), this.refreshTimeline(babyId)]);
+  }
+
+  async refreshFeeding(babyId: string): Promise<void> {
+    await Promise.all([this.refreshAllergenTrials(babyId), this.refreshTimeline(babyId)]);
+  }
+
+  async refreshDiapers(babyId: string): Promise<void> {
+    await this.refreshTimeline(babyId);
+  }
+
+  async refreshHealth(babyId: string): Promise<void> {
+    await this.refreshBabyFull(babyId);
+  }
+
+  async refreshGrowth(babyId: string): Promise<void> {
+    await this.refreshBabyFull(babyId);
+  }
+
+  async refreshReport(babyId: string): Promise<void> {
+    await this.refreshAllForBaby(babyId);
+  }
+
+  async refreshChildren(): Promise<void> {
+    await this.loadFamilyAndBabies();
   }
 
   async logQuickDiaper(payload: {

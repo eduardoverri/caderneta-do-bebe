@@ -1,6 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { RoutineEventModel, RoutineStore } from '../../core/state/routine.store';
+import { BabyStore } from '../../core/state/baby.store';
+import { LoadingOverlayService } from '../../core/services/loading-overlay.service';
 import { BreastTimerComponent } from './components/breast-timer/breast-timer.component';
 import { SolidsPlateSelectorComponent } from './components/solids-plate-selector/solids-plate-selector.component';
 import { AllergenMonitorComponent } from './components/allergen-monitor/allergen-monitor.component';
@@ -117,9 +119,22 @@ import { HungerCuesGuideComponent } from './components/hunger-cues-guide/hunger-
     }
   `
 })
-export class FeedingTrackerComponent {
+export class FeedingTrackerComponent implements OnInit {
   readonly store = inject(RoutineStore);
+  private readonly babyStore = inject(BabyStore);
+  private readonly loadingOverlay = inject(LoadingOverlayService);
+
   readonly activeMode = signal<'BREAST_MILK' | 'SOLIDS' | 'ALLERGENS' | 'HISTORY'>('BREAST_MILK');
+
+  async ngOnInit(): Promise<void> {
+    const babyId = this.babyStore.selectedBabyId();
+    if (babyId) {
+      await this.loadingOverlay.runWithLoading(
+        () => this.store.refreshFeeding(babyId),
+        'Carregando registros de alimentação e alérgenos...'
+      );
+    }
+  }
 
   readonly feedingEvents = computed<RoutineEventModel[]>(() =>
     this.store.events().filter(e => e.category === 'Feeding')
