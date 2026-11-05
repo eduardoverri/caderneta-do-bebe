@@ -299,10 +299,10 @@ export class AppComponent implements OnInit {
     { id: 'sleep', label: 'Sono', icon: '💤' },
     { id: 'feeding', label: 'Alimentação', icon: '🤱' },
     { id: 'diapers', label: 'Fraldas', icon: '🧷' },
-    { id: 'caderneta', label: 'Caderneta (Passaporte)', icon: '📘' },
+    { id: 'caderneta', label: 'Caderneta', icon: '📘' },
     { id: 'health', label: 'Saúde e Vacinas', icon: '💊' },
     { id: 'milestones', label: 'Desenvolvimento', icon: '🏆' },
-    { id: 'growth', label: 'Crescimento (OMS)', icon: '📈' },
+    { id: 'growth', label: 'Crescimento', icon: '📈' },
     { id: 'report', label: 'Consultas', icon: '🩺' },
     { id: 'children', label: 'Crianças', icon: '👶' }
   ];
