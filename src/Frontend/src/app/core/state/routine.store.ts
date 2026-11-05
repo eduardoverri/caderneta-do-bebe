@@ -766,23 +766,51 @@ export class RoutineStore {
   ): Promise<void> {
     const babyId = this.babyStore.selectedBabyId();
     if (!babyId) return;
+
+    const resolvedOfficialCode: 'P' | 'A' | 'NV' =
+      officialCode ?? (status === 'Achieved' ? 'P' : status === 'InProgress' ? 'NV' : 'A');
+
+    // Atualização otimista imediata no signal e no cache local
+    this.milestones.update(list => {
+      const next = list.map(m => {
+        if (m.milestoneCode !== milestoneCode) return m;
+        return {
+          ...m,
+          status,
+          officialCode: resolvedOfficialCode,
+          notes: notes !== undefined ? notes : m.notes,
+          achievedAtDate: status === 'Achieved' ? (m.achievedAtDate || new Date().toISOString()) : undefined,
+          actualAgeAtAchievementDays: status === 'Achieved' ? m.actualAgeAtAchievementDays : undefined
+        };
+      });
+      this.saveLocalMilestones(babyId, next);
+      return next;
+    });
+
     try {
-      await firstValueFrom(
-        this.http.put(`${this.apiBaseUrl}/babies/${babyId}/milestones/${milestoneCode}`, {
+      const updated = await firstValueFrom(
+        this.http.put<MilestoneItem>(`${this.apiBaseUrl}/babies/${babyId}/milestones/${milestoneCode}`, {
           status,
           notes,
-          officialCode
+          officialCode: resolvedOfficialCode
         })
       );
+      if (updated) {
+        this.milestones.update(list => {
+          const next = list.map(m => (m.milestoneCode === milestoneCode ? { ...m, ...updated } : m));
+          this.saveLocalMilestones(babyId, next);
+          return next;
+        });
+      }
       this.popupAlert.success(
         'Marco do desenvolvimento infantil atualizado com sucesso.',
         'Marco do Desenvolvimento Salvo'
       );
       await this.refreshAllForBaby(babyId);
     } catch {
-      this.popupAlert.error(
-        'Erro ao atualizar o marco do desenvolvimento infantil.',
-        'Erro ao Atualizar'
+      this.popupAlert.warning(
+        'Marco atualizado localmente. Será sincronizado quando a conexão for restabelecida.',
+        'Modo Offline • Marco Atualizado'
       );
     }
   }
@@ -1217,16 +1245,10 @@ export class RoutineStore {
 
   private mergeMilestones(serverMilestones: MilestoneItem[], localMilestones: MilestoneItem[]): MilestoneItem[] {
     const map = new Map<string, MilestoneItem>();
-    for (const m of [...serverMilestones, ...localMilestones]) {
+    for (const m of [...localMilestones, ...serverMilestones]) {
       if (!m?.milestoneCode) continue;
-      const existing = map.get(m.milestoneCode);
-      if (!existing) {
-        map.set(m.milestoneCode, m);
-      } else {
-        const rank = (s: string) => (s === 'Achieved' ? 2 : s === 'InProgress' ? 1 : 0);
-        map.set(m.milestoneCode, rank(m.status) >= rank(existing.status) ? m : existing);
-      }
+      map.set(m.milestoneCode, m);
     }
-    return Array.from(map.values()).sort((a, b) => a.expectedAgeMonths - b.expectedAgeMonths);
+    return Array.from(map.values()).sort((a, b) => (a.expectedAgeMonths ?? 0) - (b.expectedAgeMonths ?? 0));
   }
 }

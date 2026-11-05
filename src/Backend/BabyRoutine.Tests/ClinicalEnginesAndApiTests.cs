@@ -463,6 +463,80 @@ public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(HttpStatusCode.NoContent, evDelete.StatusCode);
     }
 
+    [Fact]
+    public async Task Milestones_CanTransitionFreelyBetweenAchievedAbsentAndNotVerified()
+    {
+        var loginRes = await _client.PostAsJsonAsync("/api/auth/google", new GoogleLoginRequestDto(
+            IdToken: "test-google-id-token:sub-ms-test:ms.test@example.com:Milestone Tester"
+        ));
+        loginRes.EnsureSuccessStatusCode();
+        var loginPayload = await loginRes.Content.ReadFromJsonAsync<JsonElement>();
+        var token = loginPayload.GetProperty("token").GetString()!;
+
+        using var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var createRes = await client.PostAsJsonAsync("/api/babies", new CreateChildRequestDto(
+            Name: "Bebê Marcos",
+            BirthDate: DateTime.UtcNow.AddMonths(-4),
+            GestationalWeeks: 40,
+            GestationalDays: 0,
+            Gender: "M",
+            BirthWeightGrams: 3400,
+            BirthLengthCm: 50.0,
+            CurrentWeightGrams: 6500,
+            CurrentHeightCm: 63.0,
+            HeadCircumferenceCm: 41.5,
+            BloodType: "O+"
+        ));
+        createRes.EnsureSuccessStatusCode();
+        var baby = (await createRes.Content.ReadFromJsonAsync<Baby>())!;
+
+        // 1. Obtém lista inicial de marcos
+        var getRes = await client.GetFromJsonAsync<JsonElement>($"/api/babies/{baby.Id}/milestones");
+        var firstMs = getRes.GetProperty("milestones").EnumerateArray().First();
+        var msCode = firstMs.GetProperty("milestoneCode").GetString()!;
+
+        // 2. Transição para Presente (P) / Achieved
+        var putP = await client.PutAsJsonAsync($"/api/babies/{baby.Id}/milestones/{msCode}", new ToggleMilestoneDto(
+            Status: "Achieved",
+            OfficialCode: "P",
+            Notes: "Marco presente (P)"
+        ));
+        putP.EnsureSuccessStatusCode();
+        var msP = await putP.Content.ReadFromJsonAsync<MilestoneProgress>();
+        Assert.NotNull(msP);
+        Assert.Equal("Achieved", msP.Status);
+        Assert.Equal("P", msP.OfficialCode);
+        Assert.NotNull(msP.AchievedAtDate);
+
+        // 3. Transição de Achieved para Ausente (A) / NotStarted
+        var putA = await client.PutAsJsonAsync($"/api/babies/{baby.Id}/milestones/{msCode}", new ToggleMilestoneDto(
+            Status: "NotStarted",
+            OfficialCode: "A",
+            Notes: "Marco ausente (A)"
+        ));
+        putA.EnsureSuccessStatusCode();
+        var msA = await putA.Content.ReadFromJsonAsync<MilestoneProgress>();
+        Assert.NotNull(msA);
+        Assert.Equal("NotStarted", msA.Status);
+        Assert.Equal("A", msA.OfficialCode);
+        Assert.Null(msA.AchievedAtDate);
+
+        // 4. Transição de Ausente para Não Verificado (NV) / InProgress
+        var putNV = await client.PutAsJsonAsync($"/api/babies/{baby.Id}/milestones/{msCode}", new ToggleMilestoneDto(
+            Status: "InProgress",
+            OfficialCode: "NV",
+            Notes: "Marco não verificado (NV)"
+        ));
+        putNV.EnsureSuccessStatusCode();
+        var msNV = await putNV.Content.ReadFromJsonAsync<MilestoneProgress>();
+        Assert.NotNull(msNV);
+        Assert.Equal("InProgress", msNV.Status);
+        Assert.Equal("NV", msNV.OfficialCode);
+        Assert.Null(msNV.AchievedAtDate);
+    }
+
     private sealed class TestGoogleSsoValidator : IGoogleSsoValidator
     {
         public Task<GoogleSsoPayload> ValidateAsync(GoogleLoginRequestDto dto, CancellationToken ct = default)

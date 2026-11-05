@@ -295,7 +295,7 @@ export class AppComponent implements OnInit {
   readonly alertsOpen = signal<boolean>(false);
 
   readonly tabs = [
-    { id: 'dashboard', label: 'Rotina & Ações', icon: '📊' },
+    { id: 'dashboard', label: 'Rotina', icon: '📊' },
     { id: 'sleep', label: 'Sono', icon: '💤' },
     { id: 'feeding', label: 'Alimentação', icon: '🤱' },
     { id: 'diapers', label: 'Fraldas', icon: '🧷' },

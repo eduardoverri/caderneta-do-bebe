@@ -1403,6 +1403,7 @@ public static class EndpointRouteBuilderExtensions
                 milestone.OfficialCode = dto.OfficialCode;
                 if (dto.OfficialCode == "P") milestone.Status = "Achieved";
                 else if (dto.OfficialCode == "A") milestone.Status = "NotStarted";
+                else if (dto.OfficialCode == "NV") milestone.Status = "InProgress";
             }
             else
             {
@@ -1414,7 +1415,7 @@ public static class EndpointRouteBuilderExtensions
                 milestone.AchievedAtDate ??= DateTime.UtcNow;
                 milestone.ActualAgeAtAchievementDays ??= baby.GetChronologicalAgeDays();
             }
-            else if (milestone.Status == "NotStarted")
+            else
             {
                 milestone.AchievedAtDate = null;
                 milestone.ActualAgeAtAchievementDays = null;
@@ -1424,6 +1425,14 @@ public static class EndpointRouteBuilderExtensions
             if (!string.IsNullOrWhiteSpace(dto.MediaPhotoUrl)) milestone.MediaPhotoUrl = dto.MediaPhotoUrl;
 
             await milestoneRepo.UpdateAsync(milestone, ct);
+
+            // Mantém a classificação de desenvolvimento integral da criança sincronizada
+            var allMilestones = await milestoneRepo.GetByBabyIdAsync(userId, baby.Id, ct);
+            var eval = CadernetaClinicalEngine.EvaluateIntegralDevelopment(baby, allMilestones);
+            baby.DevelopmentSurveillance ??= new();
+            baby.DevelopmentSurveillance.OverallClassification = eval.Classification;
+            await babyRepo.UpdateAsync(baby, ct);
+
             return Results.Ok(milestone);
         })
         .WithName("ToggleMilestoneAchievement");

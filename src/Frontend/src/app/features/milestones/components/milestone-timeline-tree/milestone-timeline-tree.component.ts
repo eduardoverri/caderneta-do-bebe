@@ -113,7 +113,7 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
                     type="button"
                     class="btn"
                     style="min-height: 32px; font-size: 0.76rem; padding: 0.2rem 0.6rem;"
-                    [class.btn-milestone]="m.status === 'InProgress' && m.officialCode !== 'A'"
+                    [class.btn-milestone]="m.officialCode === 'NV' || (m.status === 'InProgress' && m.officialCode !== 'A')"
                     (click)="routineStore.updateMilestoneStatus(m.milestoneCode, 'InProgress', 'Marco não verificado (NV)', 'NV')">
                     ⏳ NV
                   </button>
