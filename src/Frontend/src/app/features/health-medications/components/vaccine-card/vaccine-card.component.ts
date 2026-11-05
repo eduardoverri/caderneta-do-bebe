@@ -50,9 +50,17 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
                 <div style="font-weight: 800; font-size: 0.9rem;">{{ vac.name }}</div>
               </div>
               <div style="display: flex; align-items: center; gap: 0.3rem; flex-shrink: 0;">
-                <span class="badge" [class]="vac.status === 'Applied' ? 'badge-diaper' : (vac.status === 'Overdue' ? 'badge-health' : 'badge-milestone')">
+                <button
+                  type="button"
+                  class="badge"
+                  style="cursor: pointer; font: inherit;"
+                  [style.opacity]="savingVaccineCode() === vac.code ? '0.6' : '1'"
+                  [disabled]="savingVaccineCode() === vac.code"
+                  [class]="vac.status === 'Applied' ? 'badge-diaper' : (vac.status === 'Overdue' ? 'badge-health' : 'badge-milestone')"
+                  (click)="toggleVaccineStatus(vac)"
+                  [title]="vac.status === 'Applied' ? 'Clique para alternar para Pendente' : 'Clique para marcar como Aplicada com a data atual'">
                   {{ vac.status === 'Applied' ? '✅ Aplicada' : (vac.status === 'Overdue' ? '⚠️ Atrasada' : '🗓️ Pendente') }}
-                </span>
+                </button>
                 <button
                   type="button"
                   class="btn"
@@ -105,10 +113,6 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
                     <label style="font-size: 0.72rem; font-weight: 700;">Unidade (UBS)</label>
                     <input type="text" class="input-field" [(ngModel)]="editForm.healthUnit" placeholder="UBS Centro" />
                   </div>
-                  <div>
-                    <label style="font-size: 0.72rem; font-weight: 700;">Assinatura</label>
-                    <input type="text" class="input-field" [(ngModel)]="editForm.signature" placeholder="Profissional" />
-                  </div>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 0.4rem; margin-top: 0.55rem;">
                   <button type="button" class="btn" style="min-height: 30px; font-size: 0.75rem;" (click)="editingVaccineCode.set(null)">
@@ -148,10 +152,6 @@ import { OfficialReferenceComponent } from '../../../../shared/components/offici
             <div>
               <label style="font-size: 0.74rem; font-weight: 700;">Unidade</label>
               <input type="text" class="input-field" [(ngModel)]="campaignForm.healthUnit" placeholder="UBS" />
-            </div>
-            <div>
-              <label style="font-size: 0.74rem; font-weight: 700;">Assinatura</label>
-              <input type="text" class="input-field" [(ngModel)]="campaignForm.signature" placeholder="Profissional" />
             </div>
           </div>
 
@@ -217,6 +217,7 @@ export class VaccineCardComponent {
 
   readonly filterGroup = signal<'ALL' | 'ATE_12_MESES' | 'APOS_12_MESES'>('ALL');
   readonly editingVaccineCode = signal<string | null>(null);
+  readonly savingVaccineCode = signal<string | null>(null);
 
   readonly appliedCount = computed(() =>
     (this.babyStore.activeBaby().vaccines || []).filter(v => v.status === 'Applied').length
@@ -271,6 +272,28 @@ export class VaccineCardComponent {
     };
     this.editingVaccineCode.set(vac.code);
   }
+
+  async toggleVaccineStatus(vac: VaccineRecord): Promise<void> {
+    if (this.savingVaccineCode()) return;
+    this.savingVaccineCode.set(vac.code);
+    try {
+      const nextStatus: 'Pending' | 'Applied' = vac.status === 'Applied' ? 'Pending' : 'Applied';
+      const today = new Date().toISOString().slice(0, 10);
+      this.editForm = {
+        status: nextStatus,
+        appliedAt: today,
+        lot: vac.lot || '',
+        laboratory: vac.laboratory || '',
+        healthUnit: vac.healthUnit || '',
+        signature: vac.signature || ''
+      };
+      await this.saveVaccine(vac.code);
+    } finally {
+      this.savingVaccineCode.set(null);
+    }
+  }
+
+  readonly toggleVaccine = this.toggleVaccineStatus.bind(this);
 
   async saveVaccine(code: string): Promise<void> {
     await this.routineStore.updateNationalVaccine(code, {

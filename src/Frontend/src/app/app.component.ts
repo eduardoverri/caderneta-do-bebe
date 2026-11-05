@@ -296,10 +296,10 @@ export class AppComponent implements OnInit {
 
   readonly tabs = [
     { id: 'dashboard', label: 'Rotina & Ações', icon: '📊' },
-    { id: 'caderneta', label: 'Caderneta (Passaporte)', icon: '📘' },
     { id: 'sleep', label: 'Sono', icon: '💤' },
     { id: 'feeding', label: 'Alimentação', icon: '🤱' },
     { id: 'diapers', label: 'Fraldas', icon: '🧷' },
+    { id: 'caderneta', label: 'Caderneta (Passaporte)', icon: '📘' },
     { id: 'health', label: 'Saúde e Vacinas', icon: '💊' },
     { id: 'milestones', label: 'Desenvolvimento', icon: '🏆' },
     { id: 'growth', label: 'Crescimento (OMS)', icon: '📈' },
