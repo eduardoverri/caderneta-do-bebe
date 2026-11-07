@@ -23,7 +23,6 @@ import { DiapersTrackerComponent } from './features/diapers-tracker/diapers-trac
 import { HealthComponent } from './features/health-medications/health.component';
 import { MilestonesComponent } from './features/milestones/milestones.component';
 import { GrowthTrackerComponent } from './features/growth-tracker/growth-tracker.component';
-import { PediatricReportComponent } from './features/reports/pediatric-report.component';
 
 @Component({
   selector: 'app-root',
@@ -45,8 +44,7 @@ import { PediatricReportComponent } from './features/reports/pediatric-report.co
     DiapersTrackerComponent,
     HealthComponent,
     MilestonesComponent,
-    GrowthTrackerComponent,
-    PediatricReportComponent
+    GrowthTrackerComponent
   ],
   template: `
     <div class="pwa-shell">
@@ -273,9 +271,6 @@ import { PediatricReportComponent } from './features/reports/pediatric-report.co
               @case ('growth') {
                 <app-growth-tracker />
               }
-              @case ('report') {
-                <app-pediatric-report />
-              }
             }
           }
         }
@@ -310,7 +305,6 @@ export class AppComponent implements OnInit {
     { id: 'health', label: 'Saúde e Vacinas', icon: '💊' },
     { id: 'milestones', label: 'Desenvolvimento', icon: '🏆' },
     { id: 'growth', label: 'Crescimento', icon: '📈' },
-    { id: 'report', label: 'Consultas', icon: '🩺' },
     { id: 'children', label: 'Crianças', icon: '👶' }
   ];
 
@@ -362,9 +356,6 @@ export class AppComponent implements OnInit {
         break;
       case 'growth':
         if (babyId) await this.loadingOverlay.runWithLoading(() => this.routineStore.refreshGrowth(babyId), 'Carregando curvas e medidas de crescimento...');
-        break;
-      case 'report':
-        if (babyId) await this.loadingOverlay.runWithLoading(() => this.routineStore.refreshReport(babyId), 'Carregando resumo para consulta pediátrica...');
         break;
       case 'children':
         await this.loadingOverlay.runWithLoading(() => this.routineStore.refreshChildren(), 'Carregando cadastro das crianças...');

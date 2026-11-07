@@ -15,9 +15,11 @@ import { LoadingOverlayService } from '../../core/services/loading-overlay.servi
     TimelineFeedComponent
   ],
   template: `
-    <app-wake-window-widget />
-    <app-daily-summary-cards />
-    <app-timeline-feed />
+    <div style="display: flex; flex-direction: column; gap: var(--space-5);">
+      <app-wake-window-widget />
+      <app-daily-summary-cards />
+      <app-timeline-feed />
+    </div>
   `
 })
 export class DashboardComponent implements OnInit {

@@ -793,10 +793,6 @@ export class RoutineStore {
     await this.refreshBabyFull(babyId);
   }
 
-  async refreshReport(babyId: string): Promise<void> {
-    await this.refreshAllForBaby(babyId);
-  }
-
   async refreshChildren(): Promise<void> {
     await this.loadFamilyAndBabies();
   }
