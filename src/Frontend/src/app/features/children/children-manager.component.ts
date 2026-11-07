@@ -1,8 +1,8 @@
-import { Component, EventEmitter, OnInit, Output, inject } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { AuthService } from '../../core/auth/auth.service';
-import { BabyStore } from '../../core/state/baby.store';
+import { BabyModel, BabyStore } from '../../core/state/baby.store';
 import { RoutineStore } from '../../core/state/routine.store';
 import { PopupAlertService } from '../../core/services/popup-alert.service';
 import { LoadingOverlayService } from '../../core/services/loading-overlay.service';
@@ -44,10 +44,13 @@ import { OfficialReferenceComponent } from '../../shared/components/official-ref
               [style.border-color]="babyStore.selectedBabyId() === b.id ? 'var(--cat-sleep)' : 'var(--border-subtle)'">
               <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
                 <div>
-                  <div style="display: flex; align-items: center; gap: 0.45rem;">
+                  <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
                     <span style="font-size: 1rem; font-weight: 800;">{{ b.name }}</span>
                     @if (babyStore.selectedBabyId() === b.id) {
                       <span class="badge badge-diaper">✓ Ativa</span>
+                    }
+                    @if ((b.sharedWithEmails?.length ?? 0) > 0 || (b.ownerUserId && b.ownerUserId !== babyStore.currentUserId())) {
+                      <span class="badge badge-sleep" title="Criança compartilhada entre contas Google">🤝 Compartilhada</span>
                     }
                   </div>
                   <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.15rem;">
@@ -58,7 +61,7 @@ import { OfficialReferenceComponent } from '../../shared/components/official-ref
                   </div>
                 </div>
 
-                <div style="display: flex; gap: 0.35rem;">
+                <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
                   <button
                     type="button"
                     class="btn btn-sleep"
@@ -71,12 +74,89 @@ import { OfficialReferenceComponent } from '../../shared/components/official-ref
                     type="button"
                     class="btn"
                     style="min-height: 34px; font-size: 0.78rem;"
+                    (click)="toggleSharePanel(b.id)"
+                    [attr.aria-expanded]="sharingBabyId() === b.id"
+                    title="Compartilhar criança com outra conta Google">
+                    <span aria-hidden="true">🤝</span>
+                    <span>Compartilhar</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn"
+                    style="min-height: 34px; font-size: 0.78rem;"
                     (click)="removeChild(b.id)"
                     title="Remover cadastro">
                     <span aria-hidden="true">🗑️</span>
                   </button>
                 </div>
               </div>
+
+              @if ((b.sharedWithEmails?.length ?? 0) > 0 && sharingBabyId() !== b.id) {
+                <div style="margin-top: 0.5rem; padding-top: 0.45rem; border-top: 1px dashed var(--border-subtle); font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                  <span>Contas vinculadas:</span>
+                  @for (email of b.sharedWithEmails; track email) {
+                    <span class="badge" style="font-size: 0.7rem;">{{ email }}</span>
+                  }
+                </div>
+              }
+
+              @if (sharingBabyId() === b.id) {
+                <div
+                  style="margin-top: 0.65rem; padding-top: 0.65rem; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 0.5rem;">
+                  <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-primary);">
+                    Compartilhar {{ b.name }} com outra conta Google já cadastrada:
+                  </label>
+                  <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                    <input
+                      type="email"
+                      class="input-field"
+                      style="flex: 1; min-width: 200px; min-height: 36px; font-size: 0.82rem;"
+                      [(ngModel)]="shareEmailInput"
+                      placeholder="exemplo@gmail.com"
+                      (keyup.enter)="shareChild(b)" />
+                    <button
+                      type="button"
+                      class="btn btn-diaper"
+                      style="min-height: 36px; font-size: 0.78rem;"
+                      (click)="shareChild(b)">
+                      <span aria-hidden="true">➕</span>
+                      <span>Vincular E-mail</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn"
+                      style="min-height: 36px; font-size: 0.78rem;"
+                      (click)="sharingBabyId.set(null)">
+                      <span>Fechar</span>
+                    </button>
+                  </div>
+
+                  @if ((b.sharedWithEmails?.length ?? 0) > 0) {
+                    <div style="display: flex; flex-direction: column; gap: 0.3rem; margin-top: 0.2rem;">
+                      <span style="font-size: 0.74rem; color: var(--text-secondary); font-weight: 600;">
+                        E-mails com acesso compartilhado a esta criança:
+                      </span>
+                      <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                        @for (email of b.sharedWithEmails; track email) {
+                          <span
+                            class="badge"
+                            style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.5rem; font-size: 0.74rem;">
+                            <span>{{ email }}</span>
+                            <button
+                              type="button"
+                              style="background: none; border: none; color: inherit; cursor: pointer; font-weight: 800; padding: 0 0.15rem;"
+                              title="Remover acesso deste e-mail"
+                              (click)="unshareChild(b.id, email)">
+                              ✕
+                            </button>
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
             </div>
           }
         </div>
@@ -177,6 +257,9 @@ export class ChildrenManagerComponent implements OnInit {
 
   @Output() readonly childSelected = new EventEmitter<void>();
 
+  readonly sharingBabyId = signal<string | null>(null);
+  shareEmailInput = '';
+
   name = '';
   birthDateInput = '';
   gestationalWeeks = 39;
@@ -259,5 +342,35 @@ export class ChildrenManagerComponent implements OnInit {
 
   async removeChild(babyId: string): Promise<void> {
     await this.routineStore.deleteChildForAuthenticatedUser(babyId);
+  }
+
+  toggleSharePanel(babyId: string): void {
+    if (this.sharingBabyId() === babyId) {
+      this.sharingBabyId.set(null);
+    } else {
+      this.sharingBabyId.set(babyId);
+      this.shareEmailInput = '';
+    }
+  }
+
+  async shareChild(baby: BabyModel): Promise<void> {
+    const email = this.shareEmailInput.trim();
+    if (!email) {
+      this.popupAlert.incompleteForm('Informe o e-mail da conta Google que deseja vincular.');
+      return;
+    }
+
+    await this.loadingOverlay.runWithLoading(async () => {
+      const updated = await this.routineStore.shareChildWithEmail(baby.id, email);
+      if (updated) {
+        this.shareEmailInput = '';
+      }
+    }, `Compartilhando ${baby.name}...`);
+  }
+
+  async unshareChild(babyId: string, email: string): Promise<void> {
+    await this.loadingOverlay.runWithLoading(async () => {
+      await this.routineStore.unshareChildFromEmail(babyId, email);
+    }, 'Removendo compartilhamento...');
   }
 }

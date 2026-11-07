@@ -39,6 +39,8 @@ public record CreateChildRequestDto(
     string? PediatricianPhone = null
 );
 
+public record ShareChildRequestDto(string Email);
+
 public record RestoreUserStateRequestDto(
     List<BabyRoutine.Application.Common.Models.Baby>? Babies = null,
     List<BabyRoutine.Application.Common.Models.RoutineEvent>? RoutineEvents = null,

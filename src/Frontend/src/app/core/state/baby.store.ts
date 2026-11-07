@@ -276,6 +276,8 @@ export interface AgendaEntryRecord {
 export interface BabyModel {
   id: string;
   ownerUserId?: string;
+  sharedWithUserIds?: string[];
+  sharedWithEmails?: string[];
   familyId: string;
   name: string;
   birthDate: string;
@@ -532,7 +534,9 @@ export class BabyStore {
       if (!existing) {
         map.set(b.id, {
           ...b,
-          ownerUserId: ownerUserId || b.ownerUserId,
+          ownerUserId: b.ownerUserId || ownerUserId,
+          sharedWithUserIds: b.sharedWithUserIds ?? [],
+          sharedWithEmails: b.sharedWithEmails ?? [],
           growthLogs: b.growthLogs ?? [],
           vaccines: b.vaccines ?? [],
           allergies: b.allergies ?? [],
@@ -541,10 +545,18 @@ export class BabyStore {
       } else {
         const mergedLogs = this.mergeGrowthLogs(existing.growthLogs ?? [], b.growthLogs ?? []);
         const latestLog = mergedLogs.length > 0 ? mergedLogs[mergedLogs.length - 1] : null;
+        const mergedSharedUserIds = Array.from(
+          new Set([...(existing.sharedWithUserIds ?? []), ...(b.sharedWithUserIds ?? [])])
+        );
+        const mergedSharedEmails = Array.from(
+          new Set([...(existing.sharedWithEmails ?? []), ...(b.sharedWithEmails ?? [])].map(e => e.trim().toLowerCase()))
+        );
         map.set(b.id, {
           ...existing,
           ...b,
-          ownerUserId: ownerUserId || b.ownerUserId || existing.ownerUserId,
+          ownerUserId: b.ownerUserId || existing.ownerUserId || ownerUserId,
+          sharedWithUserIds: mergedSharedUserIds,
+          sharedWithEmails: mergedSharedEmails,
           growthLogs: mergedLogs,
           currentWeightGrams: latestLog ? latestLog.weightGrams : (b.currentWeightGrams || existing.currentWeightGrams),
           currentHeightCm: latestLog ? latestLog.heightCm : (b.currentHeightCm || existing.currentHeightCm),

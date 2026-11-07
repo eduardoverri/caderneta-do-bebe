@@ -53,6 +53,8 @@ public class Baby
     [BsonRepresentation(BsonType.ObjectId)]
     public string Id { get; set; } = ObjectId.GenerateNewId().ToString();
     public string OwnerUserId { get; set; } = string.Empty;
+    public List<string> SharedWithUserIds { get; set; } = [];
+    public List<string> SharedWithEmails { get; set; } = [];
     public string FamilyId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public DateTime BirthDate { get; set; }
@@ -111,6 +113,12 @@ public class Baby
     public int GetEffectiveAgeMonthsForDevelopment(DateTime? referenceDate = null)
     {
         return GetCorrectedAgeDays(referenceDate) / 30;
+    }
+
+    public bool HasUserAccess(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return false;
+        return OwnerUserId == userId || (SharedWithUserIds is not null && SharedWithUserIds.Contains(userId));
     }
 }
 

@@ -258,6 +258,89 @@ public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
     }
 
     [Fact]
+    public async Task ShareChild_AllowsMultipleGoogleAccountsToShareSameChildAndAllRecords()
+    {
+        // 1. Usuário A e Usuário B fazem login com suas respectivas contas Google
+        var userALogin = await _client.PostAsJsonAsync("/api/auth/google", new GoogleLoginRequestDto(
+            IdToken: "test-google-id-token:sub-share-mom:mae.compartilha@gmail.com:Mãe Ana"
+        ));
+        userALogin.EnsureSuccessStatusCode();
+        var userAToken = (await userALogin.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString()!;
+
+        var userBLogin = await _client.PostAsJsonAsync("/api/auth/google", new GoogleLoginRequestDto(
+            IdToken: "test-google-id-token:sub-share-dad:pai.compartilha@gmail.com:Pai Carlos"
+        ));
+        userBLogin.EnsureSuccessStatusCode();
+        var userBToken = (await userBLogin.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString()!;
+
+        using var clientMom = _factory.CreateClient();
+        clientMom.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", userAToken);
+
+        using var clientDad = _factory.CreateClient();
+        clientDad.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", userBToken);
+
+        // 2. Mãe cadastra a criança e registra uma fralda
+        var createRes = await clientMom.PostAsJsonAsync("/api/babies", new CreateChildRequestDto(
+            Name: "Laura Compartilhada",
+            BirthDate: DateTime.UtcNow.AddDays(-120),
+            GestationalWeeks: 39,
+            GestationalDays: 0,
+            Gender: "F",
+            BirthWeightGrams: 3200,
+            BirthLengthCm: 49.0,
+            CurrentWeightGrams: 6100,
+            CurrentHeightCm: 62.0,
+            HeadCircumferenceCm: 40.5,
+            BloodType: "O+"
+        ));
+        createRes.EnsureSuccessStatusCode();
+        var baby = (await createRes.Content.ReadFromJsonAsync<Baby>())!;
+
+        await clientMom.PostAsJsonAsync($"/api/babies/{baby.Id}/diapers/quick",
+            new QuickDiaperDto("U2", 2, null, null, false, false, true, "Registrado pela Mãe"));
+
+        // Antes do compartilhamento, o Pai não vê a criança
+        var dadBabiesBefore = await clientDad.GetFromJsonAsync<List<Baby>>("/api/babies");
+        Assert.Empty(dadBabiesBefore!);
+
+        // Tentativa de compartilhar com e-mail não cadastrado retorna 404
+        var unknownShareRes = await clientMom.PostAsJsonAsync($"/api/babies/{baby.Id}/share", new ShareChildRequestDto("naoexiste@gmail.com"));
+        Assert.Equal(HttpStatusCode.NotFound, unknownShareRes.StatusCode);
+
+        // 3. Mãe compartilha a criança informando o e-mail da conta Google do Pai
+        var shareRes = await clientMom.PostAsJsonAsync($"/api/babies/{baby.Id}/share", new ShareChildRequestDto("pai.compartilha@gmail.com"));
+        Assert.Equal(HttpStatusCode.OK, shareRes.StatusCode);
+        var sharedBaby = (await shareRes.Content.ReadFromJsonAsync<Baby>())!;
+        Assert.Contains("pai.compartilha@gmail.com", sharedBaby.SharedWithEmails);
+
+        // 4. Pai passa a listar a mesma criança e visualizar os registros feitos pela Mãe
+        var dadBabiesAfter = await clientDad.GetFromJsonAsync<List<Baby>>("/api/babies");
+        Assert.Single(dadBabiesAfter!);
+        Assert.Equal(baby.Id, dadBabiesAfter![0].Id);
+
+        var dadTimeline = await clientDad.GetFromJsonAsync<JsonElement>($"/api/babies/{baby.Id}/timeline");
+        Assert.Single(dadTimeline.GetProperty("events").EnumerateArray());
+
+        // 5. Pai registra um novo evento e atualiza marco do desenvolvimento na mesma criança
+        var dadDiaperRes = await clientDad.PostAsJsonAsync($"/api/babies/{baby.Id}/diapers/quick",
+            new QuickDiaperDto("E2", 2, "Mustard", "MoldedPastous", false, false, false, "Registrado pelo Pai"));
+        Assert.Equal(HttpStatusCode.Created, dadDiaperRes.StatusCode);
+
+        var dadMilestonesRes = await clientDad.GetFromJsonAsync<JsonElement>($"/api/babies/{baby.Id}/milestones");
+        var firstMsCode = dadMilestonesRes.GetProperty("milestones").EnumerateArray().First().GetProperty("milestoneCode").GetString()!;
+        var dadUpdateMs = await clientDad.PutAsJsonAsync($"/api/babies/{baby.Id}/milestones/{firstMsCode}", new ToggleMilestoneDto("Achieved", "Alcançado com o Pai", null, "P"));
+        dadUpdateMs.EnsureSuccessStatusCode();
+
+        // 6. Mãe vê imediatamente tanto o registro de rotina quanto o marco atualizado pelo Pai
+        var momTimeline = await clientMom.GetFromJsonAsync<JsonElement>($"/api/babies/{baby.Id}/timeline");
+        Assert.Equal(2, momTimeline.GetProperty("events").GetArrayLength());
+
+        var momMilestones = await clientMom.GetFromJsonAsync<JsonElement>($"/api/babies/{baby.Id}/milestones");
+        var updatedMs = momMilestones.GetProperty("milestones").EnumerateArray().First(m => m.GetProperty("milestoneCode").GetString() == firstMsCode);
+        Assert.Equal("Achieved", updatedMs.GetProperty("status").GetString());
+    }
+
+    [Fact]
     public async Task PostDeploy_PreservesUserSessionAndRestoresChildrenAndRecords()
     {
         // 1. Deploy inicial: usuário autentica, cria filho e registra eventos

@@ -338,18 +338,26 @@ public class BabyRepository(MongoDbContext db, InMemoryDataStore mem) : IBabyRep
         List<Baby> list;
         if (db.IsMongoConnected && db.Babies != null)
         {
-            list = await db.Babies.Find(b => b.OwnerUserId == ownerUserId).SortBy(b => b.CreatedAt).ToListAsync(ct);
+            list = await db.Babies
+                .Find(b => b.OwnerUserId == ownerUserId || b.SharedWithUserIds.Contains(ownerUserId))
+                .SortBy(b => b.CreatedAt)
+                .ToListAsync(ct);
         }
         else
         {
             lock (mem.SyncRoot)
             {
-                list = mem.Babies.Where(b => b.OwnerUserId == ownerUserId).OrderBy(b => b.CreatedAt).ToList();
+                list = mem.Babies
+                    .Where(b => b.HasUserAccess(ownerUserId))
+                    .OrderBy(b => b.CreatedAt)
+                    .ToList();
             }
         }
 
         foreach (var b in list)
         {
+            b.SharedWithUserIds ??= [];
+            b.SharedWithEmails ??= [];
             SeedData.EnsureCadernetaDataPopulated(b);
         }
         return list;
@@ -372,6 +380,8 @@ public class BabyRepository(MongoDbContext db, InMemoryDataStore mem) : IBabyRep
 
         foreach (var b in list)
         {
+            b.SharedWithUserIds ??= [];
+            b.SharedWithEmails ??= [];
             SeedData.EnsureCadernetaDataPopulated(b);
         }
         return list;
@@ -383,17 +393,26 @@ public class BabyRepository(MongoDbContext db, InMemoryDataStore mem) : IBabyRep
 
         if (db.IsMongoConnected && db.Babies != null)
         {
-            var baby = await db.Babies.Find(b => b.Id == babyId && b.OwnerUserId == ownerUserId).FirstOrDefaultAsync(ct);
+            var baby = await db.Babies
+                .Find(b => b.Id == babyId && (b.OwnerUserId == ownerUserId || b.SharedWithUserIds.Contains(ownerUserId)))
+                .FirstOrDefaultAsync(ct);
             if (baby != null)
             {
+                baby.SharedWithUserIds ??= [];
+                baby.SharedWithEmails ??= [];
                 SeedData.EnsureCadernetaDataPopulated(baby);
                 return baby;
             }
         }
         lock (mem.SyncRoot)
         {
-            var found = mem.Babies.FirstOrDefault(b => b.Id == babyId && b.OwnerUserId == ownerUserId);
-            if (found != null) SeedData.EnsureCadernetaDataPopulated(found);
+            var found = mem.Babies.FirstOrDefault(b => b.Id == babyId && b.HasUserAccess(ownerUserId));
+            if (found != null)
+            {
+                found.SharedWithUserIds ??= [];
+                found.SharedWithEmails ??= [];
+                SeedData.EnsureCadernetaDataPopulated(found);
+            }
             return found;
         }
     }
@@ -405,6 +424,8 @@ public class BabyRepository(MongoDbContext db, InMemoryDataStore mem) : IBabyRep
             var baby = await db.Babies.Find(b => b.Id == id).FirstOrDefaultAsync(ct);
             if (baby != null)
             {
+                baby.SharedWithUserIds ??= [];
+                baby.SharedWithEmails ??= [];
                 SeedData.EnsureCadernetaDataPopulated(baby);
                 return baby;
             }
@@ -412,13 +433,20 @@ public class BabyRepository(MongoDbContext db, InMemoryDataStore mem) : IBabyRep
         lock (mem.SyncRoot)
         {
             var found = mem.Babies.FirstOrDefault(b => b.Id == id);
-            if (found != null) SeedData.EnsureCadernetaDataPopulated(found);
+            if (found != null)
+            {
+                found.SharedWithUserIds ??= [];
+                found.SharedWithEmails ??= [];
+                SeedData.EnsureCadernetaDataPopulated(found);
+            }
             return found;
         }
     }
 
     public async Task<Baby> InsertAsync(Baby baby, CancellationToken ct = default)
     {
+        baby.SharedWithUserIds ??= [];
+        baby.SharedWithEmails ??= [];
         if (db.IsMongoConnected && db.Babies != null)
         {
             await db.Babies.ReplaceOneAsync(b => b.Id == baby.Id, baby, new ReplaceOptions { IsUpsert = true }, ct);
@@ -435,9 +463,11 @@ public class BabyRepository(MongoDbContext db, InMemoryDataStore mem) : IBabyRep
 
     public async Task UpdateAsync(Baby baby, CancellationToken ct = default)
     {
+        baby.SharedWithUserIds ??= [];
+        baby.SharedWithEmails ??= [];
         if (db.IsMongoConnected && db.Babies != null)
         {
-            await db.Babies.ReplaceOneAsync(b => b.Id == baby.Id && b.OwnerUserId == baby.OwnerUserId, baby, new ReplaceOptions { IsUpsert = true }, ct);
+            await db.Babies.ReplaceOneAsync(b => b.Id == baby.Id, baby, new ReplaceOptions { IsUpsert = true }, ct);
         }
         lock (mem.SyncRoot)
         {
@@ -450,22 +480,52 @@ public class BabyRepository(MongoDbContext db, InMemoryDataStore mem) : IBabyRep
 
     public async Task DeleteAsync(string babyId, string ownerUserId, CancellationToken ct = default)
     {
+        var baby = await GetByIdAndUserAsync(babyId, ownerUserId, ct);
+        if (baby is null) return;
+
+        // Se o usuário autenticado for um convidado compartilhado (e não o criador original),
+        // apenas remove o vínculo da conta dele sem apagar os dados da criança para os demais responsáveis.
+        if (baby.OwnerUserId != ownerUserId && (baby.SharedWithUserIds?.Contains(ownerUserId) == true))
+        {
+            string? userEmail = null;
+            if (db.IsMongoConnected && db.Users != null)
+            {
+                var u = await db.Users.Find(x => x.Id == ownerUserId).FirstOrDefaultAsync(ct);
+                userEmail = u?.Email;
+            }
+            if (string.IsNullOrWhiteSpace(userEmail))
+            {
+                lock (mem.SyncRoot)
+                {
+                    userEmail = mem.Users.FirstOrDefault(x => x.Id == ownerUserId)?.Email;
+                }
+            }
+
+            baby.SharedWithUserIds.RemoveAll(id => id == ownerUserId);
+            if (!string.IsNullOrWhiteSpace(userEmail))
+            {
+                baby.SharedWithEmails.RemoveAll(e => e.Equals(userEmail.Trim(), StringComparison.OrdinalIgnoreCase));
+            }
+            await UpdateAsync(baby, ct);
+            return;
+        }
+
         if (db.IsMongoConnected && db.Babies != null)
         {
-            await db.Babies.DeleteOneAsync(b => b.Id == babyId && b.OwnerUserId == ownerUserId, ct);
+            await db.Babies.DeleteOneAsync(b => b.Id == babyId, ct);
             if (db.RoutineEvents != null)
-                await db.RoutineEvents.DeleteManyAsync(e => e.BabyId == babyId && e.OwnerUserId == ownerUserId, ct);
+                await db.RoutineEvents.DeleteManyAsync(e => e.BabyId == babyId, ct);
             if (db.AllergenTrials != null)
-                await db.AllergenTrials.DeleteManyAsync(a => a.BabyId == babyId && a.OwnerUserId == ownerUserId, ct);
+                await db.AllergenTrials.DeleteManyAsync(a => a.BabyId == babyId, ct);
             if (db.Milestones != null)
-                await db.Milestones.DeleteManyAsync(m => m.BabyId == babyId && m.OwnerUserId == ownerUserId, ct);
+                await db.Milestones.DeleteManyAsync(m => m.BabyId == babyId, ct);
         }
         lock (mem.SyncRoot)
         {
-            mem.Babies.RemoveAll(b => b.Id == babyId && b.OwnerUserId == ownerUserId);
-            mem.RoutineEvents.RemoveAll(e => e.BabyId == babyId && e.OwnerUserId == ownerUserId);
-            mem.AllergenTrials.RemoveAll(a => a.BabyId == babyId && a.OwnerUserId == ownerUserId);
-            mem.Milestones.RemoveAll(m => m.BabyId == babyId && m.OwnerUserId == ownerUserId);
+            mem.Babies.RemoveAll(b => b.Id == babyId);
+            mem.RoutineEvents.RemoveAll(e => e.BabyId == babyId);
+            mem.AllergenTrials.RemoveAll(a => a.BabyId == babyId);
+            mem.Milestones.RemoveAll(m => m.BabyId == babyId);
             mem.SaveChanges();
         }
     }
@@ -507,12 +567,12 @@ public class RoutineEventRepository(MongoDbContext db, InMemoryDataStore mem) : 
     {
         if (db.IsMongoConnected && db.RoutineEvents != null)
         {
-            var found = await db.RoutineEvents.Find(e => e.Id == eventId && e.BabyId == babyId && e.OwnerUserId == ownerUserId).FirstOrDefaultAsync(ct);
+            var found = await db.RoutineEvents.Find(e => e.Id == eventId && e.BabyId == babyId).FirstOrDefaultAsync(ct);
             if (found != null) return found;
         }
         lock (mem.SyncRoot)
         {
-            return mem.RoutineEvents.FirstOrDefault(e => e.Id == eventId && e.BabyId == babyId && e.OwnerUserId == ownerUserId);
+            return mem.RoutineEvents.FirstOrDefault(e => e.Id == eventId && e.BabyId == babyId);
         }
     }
 
@@ -521,12 +581,12 @@ public class RoutineEventRepository(MongoDbContext db, InMemoryDataStore mem) : 
         var deleted = false;
         if (db.IsMongoConnected && db.RoutineEvents != null)
         {
-            var res = await db.RoutineEvents.DeleteOneAsync(e => e.Id == eventId && e.BabyId == babyId && e.OwnerUserId == ownerUserId, ct);
+            var res = await db.RoutineEvents.DeleteOneAsync(e => e.Id == eventId && e.BabyId == babyId, ct);
             deleted = res.DeletedCount > 0;
         }
         lock (mem.SyncRoot)
         {
-            var removed = mem.RoutineEvents.RemoveAll(e => e.Id == eventId && e.BabyId == babyId && e.OwnerUserId == ownerUserId);
+            var removed = mem.RoutineEvents.RemoveAll(e => e.Id == eventId && e.BabyId == babyId);
             if (removed > 0)
             {
                 deleted = true;
@@ -541,7 +601,7 @@ public class RoutineEventRepository(MongoDbContext db, InMemoryDataStore mem) : 
         if (db.IsMongoConnected && db.RoutineEvents != null)
         {
             return await db.RoutineEvents
-                .Find(e => e.OwnerUserId == ownerUserId && e.BabyId == babyId && e.Timestamp >= startUtc && e.Timestamp <= endUtc)
+                .Find(e => e.BabyId == babyId && e.Timestamp >= startUtc && e.Timestamp <= endUtc)
                 .SortByDescending(e => e.Timestamp)
                 .ToListAsync(ct);
         }
@@ -549,7 +609,7 @@ public class RoutineEventRepository(MongoDbContext db, InMemoryDataStore mem) : 
         lock (mem.SyncRoot)
         {
             return mem.RoutineEvents
-                .Where(e => e.OwnerUserId == ownerUserId && e.BabyId == babyId && e.Timestamp >= startUtc && e.Timestamp <= endUtc)
+                .Where(e => e.BabyId == babyId && e.Timestamp >= startUtc && e.Timestamp <= endUtc)
                 .OrderByDescending(e => e.Timestamp)
                 .ToList();
         }
@@ -560,7 +620,7 @@ public class RoutineEventRepository(MongoDbContext db, InMemoryDataStore mem) : 
         if (db.IsMongoConnected && db.RoutineEvents != null)
         {
             return await db.RoutineEvents
-                .Find(e => e.OwnerUserId == ownerUserId && e.BabyId == babyId)
+                .Find(e => e.BabyId == babyId)
                 .SortByDescending(e => e.Timestamp)
                 .Limit(limit)
                 .ToListAsync(ct);
@@ -569,7 +629,7 @@ public class RoutineEventRepository(MongoDbContext db, InMemoryDataStore mem) : 
         lock (mem.SyncRoot)
         {
             return mem.RoutineEvents
-                .Where(e => e.OwnerUserId == ownerUserId && e.BabyId == babyId)
+                .Where(e => e.BabyId == babyId)
                 .OrderByDescending(e => e.Timestamp)
                 .Take(limit)
                 .ToList();
@@ -599,14 +659,14 @@ public class AllergenTrialRepository(MongoDbContext db, InMemoryDataStore mem) :
         if (db.IsMongoConnected && db.AllergenTrials != null)
         {
             return await db.AllergenTrials
-                .Find(a => a.OwnerUserId == ownerUserId && a.BabyId == babyId)
+                .Find(a => a.BabyId == babyId)
                 .SortByDescending(a => a.IntroducedAt)
                 .ToListAsync(ct);
         }
         lock (mem.SyncRoot)
         {
             return mem.AllergenTrials
-                .Where(a => a.OwnerUserId == ownerUserId && a.BabyId == babyId)
+                .Where(a => a.BabyId == babyId)
                 .OrderByDescending(a => a.IntroducedAt)
                 .ToList();
         }
@@ -616,11 +676,11 @@ public class AllergenTrialRepository(MongoDbContext db, InMemoryDataStore mem) :
     {
         if (db.IsMongoConnected && db.AllergenTrials != null)
         {
-            return await db.AllergenTrials.Find(a => a.Id == id && a.OwnerUserId == ownerUserId).FirstOrDefaultAsync(ct);
+            return await db.AllergenTrials.Find(a => a.Id == id).FirstOrDefaultAsync(ct);
         }
         lock (mem.SyncRoot)
         {
-            return mem.AllergenTrials.FirstOrDefault(a => a.Id == id && a.OwnerUserId == ownerUserId);
+            return mem.AllergenTrials.FirstOrDefault(a => a.Id == id);
         }
     }
 
@@ -657,7 +717,7 @@ public class MilestoneRepository(MongoDbContext db, InMemoryDataStore mem) : IMi
     {
         if (db.IsMongoConnected && db.Milestones != null)
         {
-            var list = await db.Milestones.Find(m => m.OwnerUserId == ownerUserId && m.BabyId == babyId).SortBy(m => m.ExpectedAgeMonths).ToListAsync(ct);
+            var list = await db.Milestones.Find(m => m.BabyId == babyId).SortBy(m => m.ExpectedAgeMonths).ToListAsync(ct);
             if (list.Count > 0) return list;
 
             var initial = SeedData.CreateInitialMilestones(babyId, ownerUserId);
@@ -667,7 +727,7 @@ public class MilestoneRepository(MongoDbContext db, InMemoryDataStore mem) : IMi
         lock (mem.SyncRoot)
         {
             var babyMilestones = mem.Milestones
-                .Where(m => m.OwnerUserId == ownerUserId && m.BabyId == babyId)
+                .Where(m => m.BabyId == babyId)
                 .OrderBy(m => m.ExpectedAgeMonths)
                 .ToList();
             if (babyMilestones.Count == 0)
@@ -697,7 +757,7 @@ public class MilestoneRepository(MongoDbContext db, InMemoryDataStore mem) : IMi
         if (db.IsMongoConnected && db.Milestones != null)
         {
             await db.Milestones.ReplaceOneAsync(
-                m => m.BabyId == milestone.BabyId && m.OwnerUserId == milestone.OwnerUserId && m.MilestoneCode == milestone.MilestoneCode,
+                m => m.BabyId == milestone.BabyId && m.MilestoneCode == milestone.MilestoneCode,
                 milestone,
                 new ReplaceOptions { IsUpsert = true },
                 ct);
@@ -706,7 +766,7 @@ public class MilestoneRepository(MongoDbContext db, InMemoryDataStore mem) : IMi
         {
             var idx = mem.Milestones.FindIndex(m =>
                 (m.Id == milestone.Id) ||
-                (m.BabyId == milestone.BabyId && m.OwnerUserId == milestone.OwnerUserId && m.MilestoneCode.Equals(milestone.MilestoneCode, StringComparison.OrdinalIgnoreCase)));
+                (m.BabyId == milestone.BabyId && m.MilestoneCode.Equals(milestone.MilestoneCode, StringComparison.OrdinalIgnoreCase)));
             if (idx >= 0) mem.Milestones[idx] = milestone;
             else mem.Milestones.Add(milestone);
             mem.SaveChanges();

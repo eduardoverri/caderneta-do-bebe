@@ -251,6 +251,7 @@ export class RoutineStore {
       const effectiveEmail = res?.user?.email || userEmail;
 
       if (res?.babies) {
+        await this.syncLocalBackupToServer(res.babies);
         this.babyStore.setAuthenticatedUserBabies(
           effectiveUserId,
           res.family.name,
@@ -260,7 +261,6 @@ export class RoutineStore {
         );
       }
 
-      await this.syncLocalBackupToServer();
       await this.flushOfflineQueue();
       this.isBackendConnected.set(true);
     } catch {
@@ -283,15 +283,26 @@ export class RoutineStore {
     }
   }
 
-  async syncLocalBackupToServer(): Promise<void> {
-    const babies = this.babyStore.babies();
-    if (babies.length === 0) return;
+  async syncLocalBackupToServer(serverBabies?: BabyModel[]): Promise<void> {
+    const userId = this.babyStore.currentUserId();
+    const userEmail = this.babyStore.currentUserEmail();
+    const localBabies = this.babyStore.getLocalBackupBabies(userId, userEmail);
+    const serverIds = new Set((serverBabies ?? []).map(b => b.id));
+
+    // Sincroniza de volta para o servidor apenas se houver crianças locais ausentes no servidor (ex.: após redeploy)
+    // ou eventos locais não sincronizados
+    const missingBabies = serverBabies
+      ? localBabies.filter(b => b.id && !serverIds.has(b.id))
+      : localBabies;
+
+    const targetBabies = serverBabies && serverBabies.length > 0 ? missingBabies : localBabies;
+    if (targetBabies.length === 0 && (serverBabies?.length ?? 0) > 0) return;
 
     const allRoutineEvents: RoutineEventModel[] = [];
     const allAllergenTrials: AllergenTrialItem['trial'][] = [];
     const allMilestones: MilestoneItem[] = [];
 
-    for (const b of babies) {
+    for (const b of targetBabies) {
       if (!b.id) continue;
       allRoutineEvents.push(...this.getLocalEvents(b.id));
       allAllergenTrials.push(...this.getLocalAllergenTrials(b.id).map(x => x.trial));
@@ -305,7 +316,7 @@ export class RoutineStore {
           family: { name: string; inviteCode: string };
           babies: BabyModel[];
         }>(`${this.apiBaseUrl}/sync/restore`, {
-          babies,
+          babies: targetBabies,
           routineEvents: allRoutineEvents,
           allergenTrials: allAllergenTrials,
           milestones: allMilestones
@@ -397,6 +408,59 @@ export class RoutineStore {
         'Falha ao remover o cadastro do filho(a).',
         'Erro ao Excluir'
       );
+    }
+  }
+
+  async shareChildWithEmail(babyId: string, email: string): Promise<BabyModel | null> {
+    const trimmedEmail = (email ?? '').trim().toLowerCase();
+    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+      this.popupAlert.incompleteForm('Informe um endereço de e-mail válido de uma conta Google já cadastrada no sistema.');
+      return null;
+    }
+
+    try {
+      const updated = await firstValueFrom(
+        this.http.post<BabyModel>(`${this.apiBaseUrl}/babies/${babyId}/share`, { email: trimmedEmail })
+      );
+      this.babyStore.updateBabyInCurrentUser(updated);
+      this.popupAlert.success(
+        `A criança ${updated.name} e todos os seus dados foram compartilhados com ${trimmedEmail}.`,
+        'Compartilhamento Concluído',
+        { babyId: updated.id }
+      );
+      return updated;
+    } catch (err: unknown) {
+      const errorObj = err as { error?: { message?: string } };
+      const msg =
+        errorObj?.error?.message ??
+        'Não foi possível compartilhar a criança. Verifique se o e-mail informado pertence a uma conta Google já cadastrada no sistema.';
+      this.popupAlert.error(msg, 'Erro ao Compartilhar');
+      return null;
+    }
+  }
+
+  async unshareChildFromEmail(babyId: string, email: string): Promise<BabyModel | null> {
+    const trimmedEmail = (email ?? '').trim().toLowerCase();
+    if (!trimmedEmail) return null;
+
+    try {
+      const updated = await firstValueFrom(
+        this.http.delete<BabyModel>(
+          `${this.apiBaseUrl}/babies/${babyId}/share?email=${encodeURIComponent(trimmedEmail)}`
+        )
+      );
+      this.babyStore.updateBabyInCurrentUser(updated);
+      this.popupAlert.info(
+        `O acesso compartilhado de ${trimmedEmail} foi removido.`,
+        'Compartilhamento Removido',
+        { babyId: updated.id }
+      );
+      return updated;
+    } catch (err: unknown) {
+      const errorObj = err as { error?: { message?: string } };
+      const msg = errorObj?.error?.message ?? 'Não foi possível remover o compartilhamento.';
+      this.popupAlert.error(msg, 'Erro ao Desvincular');
+      return null;
     }
   }
 

@@ -159,13 +159,36 @@ public static class EndpointRouteBuilderExtensions
                         incoming.Id = ObjectId.GenerateNewId().ToString();
                     }
 
-                    incoming.OwnerUserId = user.Id;
-                    incoming.FamilyId = user.FamilyId;
+                    incoming.SharedWithUserIds ??= [];
+                    incoming.SharedWithEmails ??= [];
                     SeedData.EnsureCadernetaDataPopulated(incoming);
 
-                    var existing = await babyRepo.GetByIdAndUserAsync(incoming.Id, user.Id, ct);
+                    var existing = await babyRepo.GetByIdAsync(incoming.Id, ct);
                     if (existing is not null)
                     {
+                        if (!existing.HasUserAccess(user.Id))
+                        {
+                            continue;
+                        }
+
+                        if (incoming.SharedWithUserIds is { Count: > 0 })
+                        {
+                            foreach (var sharedId in incoming.SharedWithUserIds.Where(x => !string.IsNullOrWhiteSpace(x)))
+                            {
+                                if (!existing.SharedWithUserIds.Contains(sharedId))
+                                    existing.SharedWithUserIds.Add(sharedId);
+                            }
+                        }
+                        if (incoming.SharedWithEmails is { Count: > 0 })
+                        {
+                            foreach (var sharedEmail in incoming.SharedWithEmails.Where(x => !string.IsNullOrWhiteSpace(x)))
+                            {
+                                var normEmail = sharedEmail.Trim().ToLowerInvariant();
+                                if (!existing.SharedWithEmails.Any(e => e.Equals(normEmail, StringComparison.OrdinalIgnoreCase)))
+                                    existing.SharedWithEmails.Add(normEmail);
+                            }
+                        }
+
                         var mergedLogs = existing.GrowthLogs
                             .Concat(incoming.GrowthLogs ?? [])
                             .GroupBy(g => $"{g.MeasuredAt:yyyy-MM-ddTHH:mm}_{g.WeightGrams}_{g.HeightCm}_{g.HeadCircumferenceCm}")
@@ -192,6 +215,25 @@ public static class EndpointRouteBuilderExtensions
                     }
                     else
                     {
+                        if (string.IsNullOrWhiteSpace(incoming.OwnerUserId))
+                        {
+                            incoming.OwnerUserId = user.Id;
+                        }
+                        else if (incoming.OwnerUserId != user.Id && !incoming.SharedWithUserIds.Contains(user.Id))
+                        {
+                            incoming.SharedWithUserIds.Add(user.Id);
+                            if (!string.IsNullOrWhiteSpace(user.Email) &&
+                                !incoming.SharedWithEmails.Any(e => e.Equals(user.Email, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                incoming.SharedWithEmails.Add(user.Email.Trim().ToLowerInvariant());
+                            }
+                        }
+
+                        if (string.IsNullOrWhiteSpace(incoming.FamilyId))
+                        {
+                            incoming.FamilyId = user.FamilyId;
+                        }
+
                         if (incoming.Vaccines is null or { Count: 0 })
                         {
                             incoming.Vaccines = SeedData.CreateDefaultVaccines();
@@ -213,7 +255,7 @@ public static class EndpointRouteBuilderExtensions
                             ];
                         }
                         await babyRepo.InsertAsync(incoming, ct);
-                        await milestoneRepo.GetByBabyIdAsync(user.Id, incoming.Id, ct);
+                        await milestoneRepo.GetByBabyIdAsync(incoming.OwnerUserId, incoming.Id, ct);
                     }
                 }
             }
@@ -223,9 +265,11 @@ public static class EndpointRouteBuilderExtensions
                 foreach (var ev in dto.RoutineEvents)
                 {
                     if (string.IsNullOrWhiteSpace(ev.BabyId)) continue;
-                    ev.OwnerUserId = user.Id;
-                    ev.FamilyId = user.FamilyId;
-                    ev.RecordedByUserId = user.Id;
+                    var baby = await babyRepo.GetByIdAndUserAsync(ev.BabyId, user.Id, ct);
+                    if (baby is null) continue;
+                    ev.OwnerUserId = baby.OwnerUserId;
+                    ev.FamilyId = baby.FamilyId;
+                    if (string.IsNullOrWhiteSpace(ev.RecordedByUserId)) ev.RecordedByUserId = user.Id;
                     await eventRepo.UpsertAsync(ev, ct);
                 }
             }
@@ -235,7 +279,9 @@ public static class EndpointRouteBuilderExtensions
                 foreach (var trial in dto.AllergenTrials)
                 {
                     if (string.IsNullOrWhiteSpace(trial.BabyId)) continue;
-                    trial.OwnerUserId = user.Id;
+                    var baby = await babyRepo.GetByIdAndUserAsync(trial.BabyId, user.Id, ct);
+                    if (baby is null) continue;
+                    trial.OwnerUserId = baby.OwnerUserId;
                     await allergenRepo.UpdateAsync(trial, ct);
                 }
             }
@@ -245,7 +291,9 @@ public static class EndpointRouteBuilderExtensions
                 foreach (var ms in dto.Milestones)
                 {
                     if (string.IsNullOrWhiteSpace(ms.BabyId) || string.IsNullOrWhiteSpace(ms.MilestoneCode)) continue;
-                    ms.OwnerUserId = user.Id;
+                    var baby = await babyRepo.GetByIdAndUserAsync(ms.BabyId, user.Id, ct);
+                    if (baby is null) continue;
+                    ms.OwnerUserId = baby.OwnerUserId;
                     await milestoneRepo.UpdateAsync(ms, ct);
                 }
             }
@@ -655,6 +703,105 @@ public static class EndpointRouteBuilderExtensions
         })
         .WithName("UpdateGeneralNotesAndAgenda");
 
+        babyGroup.MapPost("/share", async (
+            string babyId,
+            ShareChildRequestDto req,
+            HttpContext httpContext,
+            IUserRepository userRepo,
+            IBabyRepository babyRepo,
+            IHubContext<FamilyHub> hub,
+            CancellationToken ct) =>
+        {
+            var currentUser = await httpContext.GetOrRestoreCurrentUserAsync(userRepo, ct);
+            if (currentUser is null) return Results.Unauthorized();
+
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, currentUser.Id, ct);
+            if (baby is null)
+            {
+                return Results.NotFound(new { message = "Criança não encontrada para o usuário autenticado." });
+            }
+
+            var targetEmail = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(targetEmail) || !targetEmail.Contains('@'))
+            {
+                return Results.BadRequest(new { message = "Informe um endereço de e-mail válido de uma conta Google já cadastrada." });
+            }
+
+            if (targetEmail.Equals(currentUser.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                return Results.BadRequest(new { message = "Você já possui acesso a esta criança com a sua própria conta Google." });
+            }
+
+            var targetUser = await userRepo.GetByGoogleSubOrEmailAsync(string.Empty, targetEmail, ct);
+            if (targetUser is null)
+            {
+                return Results.NotFound(new { message = $"Nenhuma conta Google cadastrada no sistema foi encontrada com o e-mail '{targetEmail}'." });
+            }
+
+            baby.SharedWithUserIds ??= [];
+            baby.SharedWithEmails ??= [];
+
+            if (baby.OwnerUserId == targetUser.Id || baby.SharedWithUserIds.Contains(targetUser.Id))
+            {
+                if (!baby.SharedWithEmails.Any(e => e.Equals(targetUser.Email, StringComparison.OrdinalIgnoreCase)) &&
+                    baby.OwnerUserId != targetUser.Id)
+                {
+                    baby.SharedWithEmails.Add(targetUser.Email.Trim().ToLowerInvariant());
+                    await babyRepo.UpdateAsync(baby, ct);
+                }
+                return Results.BadRequest(new { message = $"A criança '{baby.Name}' já está compartilhada com a conta '{targetUser.Email}'." });
+            }
+
+            baby.SharedWithUserIds.Add(targetUser.Id);
+            if (!baby.SharedWithEmails.Any(e => e.Equals(targetUser.Email, StringComparison.OrdinalIgnoreCase)))
+            {
+                baby.SharedWithEmails.Add(targetUser.Email.Trim().ToLowerInvariant());
+            }
+
+            await babyRepo.UpdateAsync(baby, ct);
+            await hub.Clients.Group($"family_{baby.FamilyId}").SendAsync("BabyShared", baby, ct);
+
+            return Results.Ok(baby);
+        })
+        .WithName("ShareChildWithGoogleAccount")
+        .WithSummary("Compartilha uma criança e todos os seus dados com outra conta Google já cadastrada no sistema");
+
+        babyGroup.MapDelete("/share", async (
+            string babyId,
+            string email,
+            HttpContext httpContext,
+            IUserRepository userRepo,
+            IBabyRepository babyRepo,
+            CancellationToken ct) =>
+        {
+            var currentUser = await httpContext.GetOrRestoreCurrentUserAsync(userRepo, ct);
+            if (currentUser is null) return Results.Unauthorized();
+
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, currentUser.Id, ct);
+            if (baby is null)
+            {
+                return Results.NotFound(new { message = "Criança não encontrada para o usuário autenticado." });
+            }
+
+            var targetEmail = (email ?? string.Empty).Trim().ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(targetEmail))
+            {
+                return Results.BadRequest(new { message = "Informe o e-mail que deseja desvincular." });
+            }
+
+            var targetUser = await userRepo.GetByGoogleSubOrEmailAsync(string.Empty, targetEmail, ct);
+            if (targetUser is not null)
+            {
+                baby.SharedWithUserIds?.RemoveAll(id => id == targetUser.Id);
+            }
+            baby.SharedWithEmails?.RemoveAll(e => e.Equals(targetEmail, StringComparison.OrdinalIgnoreCase));
+
+            await babyRepo.UpdateAsync(baby, ct);
+            return Results.Ok(baby);
+        })
+        .WithName("UnshareChildFromGoogleAccount")
+        .WithSummary("Remove o compartilhamento de uma criança com um e-mail específico");
+
         babyGroup.MapDelete("", async (
             string babyId,
             HttpContext httpContext,
@@ -786,10 +933,14 @@ public static class EndpointRouteBuilderExtensions
             string babyId,
             string eventId,
             HttpContext httpContext,
+            IBabyRepository babyRepo,
             IRoutineEventRepository eventRepo,
             CancellationToken ct) =>
         {
             var userId = httpContext.GetCurrentUserId();
+            var baby = await babyRepo.GetByIdAndUserAsync(babyId, userId, ct);
+            if (baby is null) return Results.NotFound();
+
             var deleted = await eventRepo.DeleteAsync(userId, babyId, eventId, ct);
             return deleted ? Results.NoContent() : Results.NotFound();
         })
